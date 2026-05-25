@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Pets — SmartPetHome{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>🐾 My Pets</h1>
+  <a href="{{ url_for('pets.new') }}" class="btn btn-primary">+ Register Pet</a>
+</div>
+
+{% if pets %}
+  <div class="card-grid">
+    {% for pet in pets %}
+    <div class="pet-card">
+      <div class="pet-card-header">
+        <h3>{{ pet.name }}</h3>
+        <span class="badge badge-info">{{ pet.species }}</span>
+      </div>
+      <dl class="pet-details">
+        {% if pet.breed %}
+          <dt>Breed</dt><dd>{{ pet.breed }}</dd>
+        {% endif %}
+        {% if pet.birth_date %}
+          <dt>Born</dt><dd>{{ pet.birth_date }}</dd>
+        {% endif %}
+        {% if pet.notes %}
+          <dt>Notes</dt><dd>{{ pet.notes }}</dd>
+        {% endif %}
+      </dl>
+      <div class="card-actions">
+        <a href="{{ url_for('pets.edit', pet_id=pet.id) }}" class="btn btn-sm btn-outline">Edit</a>
+        <form method="POST" action="{{ url_for('pets.delete', pet_id=pet.id) }}"
+              onsubmit="return confirm('Delete {{ pet.name }}? This cannot be undone.');">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-state">
+    <p>You haven't registered any pets yet.</p>
+    <a href="{{ url_for('pets.new') }}" class="btn btn-primary">Register your first pet</a>
+  </div>
+{% endif %}
+{% endblock %}
