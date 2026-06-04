@@ -1,105 +1,63 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — SmartPetHome{% endblock %}
+{% block page_id %}dashboard{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <h1>Dashboard</h1>
-  <p class="page-subtitle">Welcome back, <strong>{{ session.display_name }}</strong></p>
+  <div style="display:flex;gap:.75rem;align-items:center;">
+    <span id="dashboard-mqtt" class="badge badge-gray">MQTT...</span>
+    <button class="btn btn-sm btn-outline" onclick="SPH.loadDashboardSummary()">Refresh</button>
+  </div>
 </div>
 
-{# ── Summary cards ── #}
+<!-- Summary stats (JS-updated) -->
 <div class="stats-grid">
   <div class="stat-card">
     <div class="stat-icon">🐾</div>
-    <div class="stat-number">{{ total_pets }}</div>
+    <div class="stat-number" id="stat-pets">…</div>
     <div class="stat-label">Registered Pets</div>
-    <a href="{{ url_for('pets.index') }}" class="stat-link">Manage pets →</a>
+    <a href="{{ url_for('pets.index') }}" class="stat-link">Manage pets</a>
   </div>
   <div class="stat-card">
     <div class="stat-icon">📡</div>
-    <div class="stat-number">{{ total_devices }}</div>
+    <div class="stat-number" id="stat-devices">…</div>
     <div class="stat-label">Devices</div>
-    <a href="{{ url_for('devices.index') }}" class="stat-link">Manage devices →</a>
+    <a href="{{ url_for('devices.index') }}" class="stat-link">Manage devices</a>
   </div>
-  <div class="stat-card {% if total_alerts > 0 %}stat-card--alert{% endif %}">
+  <div class="stat-card">
     <div class="stat-icon">🔔</div>
-    <div class="stat-number">{{ total_alerts }}</div>
+    <div class="stat-number" id="stat-alerts">…</div>
     <div class="stat-label">Unresolved Alerts</div>
-    <a href="{{ url_for('alerts.index') }}" class="stat-link">View alerts →</a>
+    <a href="{{ url_for('alerts.index') }}" class="stat-link">View alerts</a>
   </div>
 </div>
 
-{# ── Recent feeding events ── #}
+<!-- Device status -->
 <section class="section">
-  <h2>Recent Feeding Events</h2>
-  {% if feeding_events %}
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Time</th>
-          <th>Device</th>
-          <th>Dispensed (g)</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for ev in feeding_events %}
-        <tr>
-          <td>{{ ev.created_at | datefmt }}</td>
-          <td><code>{{ ev.device_id[:8] }}…</code></td>
-          <td>{{ ev.dispensed_grams if ev.dispensed_grams is not none else '—' }}</td>
-          <td>
-            <span class="badge badge-{{ ev.status_color }}">{{ ev.status_color }}</span>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <div class="empty-state">
-      <p>No feeding events yet.</p>
-      <p>Once your feeder is active, events will appear here.</p>
-    </div>
-  {% endif %}
+  <h2>📡 Device Status <small class="text-muted">(live, auto-refreshes every 30s)</small></h2>
+  <div id="device-status-list"><p class="text-muted">Loading...</p></div>
 </section>
 
-{# ── Recent alerts ── #}
+<!-- Recent alerts -->
 <section class="section">
-  <h2>Recent Alerts</h2>
-  {% if recent_alerts %}
-    <ul class="alert-list">
-      {% for a in recent_alerts %}
-      <li class="alert-item alert-item--{{ a.severity }}">
-        <span class="alert-severity">{{ a.severity.upper() }}</span>
-        <span class="alert-title">{{ a.title }}</span>
-        <span class="alert-time">{{ a.created_at | datefmt }}</span>
-      </li>
-      {% endfor %}
-    </ul>
-    <a href="{{ url_for('alerts.index') }}" class="btn btn-outline">View all alerts →</a>
-  {% else %}
-    <div class="empty-state">
-      <p>✅ No unresolved alerts. Everything looks good!</p>
-    </div>
-  {% endif %}
+  <h2>🔔 Recent Alerts <button class="btn btn-sm btn-outline" style="margin-left:.75rem;" onclick="SPH.resolveAllAlerts()">Resolve All</button></h2>
+  <div id="recent-alerts-list"><p class="text-muted">Loading...</p></div>
 </section>
 
-{# ── Quick actions ── #}
+<!-- Recent feedings -->
+<section class="section">
+  <h2>🍽️ Recent Feeding Events</h2>
+  <div id="recent-feedings-list"><p class="text-muted">Loading...</p></div>
+</section>
+
+<!-- Quick actions -->
 <section class="section">
   <h2>Quick Actions</h2>
   <div class="action-grid">
-    <a href="{{ url_for('pets.new') }}" class="action-card">
-      <div class="action-icon">➕</div>
-      <div>Register a Pet</div>
-    </a>
-    <a href="{{ url_for('devices.new') }}" class="action-card">
-      <div class="action-icon">📡</div>
-      <div>Add a Device</div>
-    </a>
-    <a href="{{ url_for('history.index') }}" class="action-card">
-      <div class="action-icon">📋</div>
-      <div>View History</div>
-    </a>
+    <a href="{{ url_for('pets.new') }}"     class="action-card"><div class="action-icon">➕</div><div>Register Pet</div></a>
+    <a href="{{ url_for('devices.new') }}"  class="action-card"><div class="action-icon">📡</div><div>Add Device</div></a>
+    <a href="{{ url_for('history.index') }}" class="action-card"><div class="action-icon">📋</div><div>View History</div></a>
   </div>
 </section>
 {% endblock %}

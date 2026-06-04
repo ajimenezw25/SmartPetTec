@@ -194,45 +194,58 @@ def handle_feeder(device: dict, data: dict) -> None:
         except Exception as e:
             logger.error("FEEDER feeding_events insert FAILED: %s", e)
 
-    # ── Alert logic (deduplication unchanged) ──────────────────
-    logger.debug("FEEDER alert check — device=%s low_food=%s pet_underfed=%s",
-                 device_id, low_food, pet_underfed)
+    # ── Alert logic — threshold-based, mutually exclusive ─────────
+    # CRITICAL < 1800  — matches ESP32 umbralPeso (red LED on).
+    # WARNING  1800–3000 — "almost low" zone above the ESP32 threshold.
+    # > 3000            — no alert.
+    _CRITICAL_THRESHOLD = 1800
+    _WARNING_THRESHOLD  = 3000
 
-    if low_food:
-        if _has_open_alert(device_id, "low_food"):
-            logger.debug("FEEDER low_food alert SKIPPED — unresolved alert already exists "
-                         "for device=%s", device_id)
-        else:
-            logger.info("FEEDER low_food alert CREATING for device=%s", device_id)
-            _insert_alert(
-                device_id, owner_id,
-                alert_type = "low_food",
-                severity   = "warning",
-                title      = "⚠️ Low Food Detected",
-                message    = (
-                    f"FEEDER-001 reports low food — bowl weight is below threshold. "
-                    f"Device: '{device['device_name']}'. "
-                    f"Current reading: {remaining}."
-                ),
-            )
+    reading = data.get("food_remaining_grams") or data.get("bowl_weight_grams")
 
-    if pet_underfed:
+    try:
+        reading_val = float(reading) if reading is not None else None
+    except (TypeError, ValueError):
+        reading_val = None
+
+    if reading_val is None:
+        pass  # no reading — skip silently
+    elif reading_val < _CRITICAL_THRESHOLD:
+        # ── Critical zone ──────────────────────────────────────
+
         if _has_open_alert(device_id, "pet_underfed"):
-            logger.debug("FEEDER pet_underfed alert SKIPPED — unresolved alert already exists "
-                         "for device=%s", device_id)
+            logger.debug("FEEDER critical alert already open — skipping (reading=%.0f)", reading_val)
         else:
-            logger.info("FEEDER pet_underfed alert CREATING for device=%s", device_id)
+            logger.info("FEEDER alert: CRITICAL created (reading=%.0f)", reading_val)
             _insert_alert(
                 device_id, owner_id,
                 alert_type = "pet_underfed",
                 severity   = "critical",
-                title      = "🚨 Pet May Be Underfed",
+                title      = "🚨 Alimento Crítico — Recipiente Casi Vacío",
                 message    = (
-                    f"FEEDER-001 reports the pet may not have eaten enough. "
-                    f"Device: '{device['device_name']}'. "
-                    f"Consumed: {data.get('consumed_grams')}g."
+                    f"El nivel de alimento es crítico en '{device['device_name']}'. "
+                    f"Lectura actual: {reading_val:.0f}. "
+                    "Recarga el recipiente inmediatamente."
                 ),
             )
+    elif reading_val <= _WARNING_THRESHOLD:
+        # ── Warning zone ───────────────────────────────────────
+        if _has_open_alert(device_id, "low_food"):
+            logger.debug("FEEDER warning alert already open — skipping (reading=%.0f)", reading_val)
+        else:
+            logger.info("FEEDER alert: WARNING created (reading=%.0f)", reading_val)
+            _insert_alert(
+                device_id, owner_id,
+                alert_type = "low_food",
+                severity   = "warning",
+                title      = "⚠️ Alimento Bajo",
+                message    = (
+                    f"El nivel de alimento está bajo en '{device['device_name']}'. "
+                    f"Lectura actual: {reading_val:.0f}. "
+                    "Considera recargar el recipiente pronto."
+                ),
+            )
+    # else: reading > WARNING_THRESHOLD — no alert, no log spam
 
 
 def handle_water(device: dict, data: dict) -> None:

@@ -241,6 +241,71 @@ def get_device_events(device_id):
         return err(str(e))
 
 
+# ── Telemetry (all devices) ───────────────────────────────────
+
+@api_bp.route("/telemetry")
+@api_auth
+def get_telemetry():
+    """
+    Return raw telemetry rows across all the user's devices.
+    Currently covers automatic_feeder (feeding_events).
+    Extensible: add more device slugs / tables below.
+
+    Query params:
+      device_id    – filter to one device UUID
+      device_type  – filter by slug (e.g. automatic_feeder)
+      status_color – filter by status_color value
+      limit        – max rows (default 50, max 200)
+    """
+    sb    = get_supabase_with_session()
+    uid   = current_user_id()
+    limit = min(int(request.args.get("limit", 50)), 200)
+    filter_device_id    = request.args.get("device_id", "").strip()
+    filter_device_type  = request.args.get("device_type", "").strip()
+    filter_status_color = request.args.get("status_color", "").strip()
+
+    rows = []
+
+    # ── automatic_feeder → feeding_events ─────────────────────
+    if not filter_device_type or filter_device_type == "automatic_feeder":
+        try:
+            q = (sb.table("feeding_events")
+                 .select("created_at, dispensed_grams, consumed_grams, leftover_grams, "
+                         "status_color, metadata, "
+                         "devices(id, device_name, serial_number, device_types(slug, name))")
+                 .eq("owner_id", uid)
+                 .order("created_at", desc=True)
+                 .limit(limit))
+            if filter_device_id:
+                q = q.eq("device_id", filter_device_id)
+            if filter_status_color:
+                q = q.eq("status_color", filter_status_color)
+            res = q.execute()
+            for r in (res.data or []):
+                dev = r.pop("devices", {}) or {}
+                dt  = dev.pop("device_types", {}) or {}
+                rows.append({
+                    "created_at":       r.get("created_at"),
+                    "device_name":      dev.get("device_name", "—"),
+                    "serial_number":    dev.get("serial_number", "—"),
+                    "device_id":        dev.get("id", ""),
+                    "device_type_slug": dt.get("slug", "automatic_feeder"),
+                    "device_type_name": dt.get("name", "Automatic Feeder"),
+                    "status_color":     r.get("status_color"),
+                    "event_type":       (r.get("metadata") or {}).get("event_type"),
+                    "dispensed_grams":  r.get("dispensed_grams"),
+                    "consumed_grams":   r.get("consumed_grams"),
+                    "leftover_grams":   r.get("leftover_grams"),
+                    "food_remaining":   (r.get("metadata") or {}).get("food_remaining_grams"),
+                })
+        except Exception as e:
+            logger.error("Telemetry fetch failed (feeding_events): %s", e)
+
+    # Sort combined rows newest-first and trim to limit
+    rows.sort(key=lambda r: r.get("created_at") or "", reverse=True)
+    return ok(rows[:limit])
+
+
 # ── Commands ──────────────────────────────────────────────────
 
 @api_bp.route("/devices/<device_id>/command", methods=["POST"])
@@ -447,6 +512,25 @@ def alert_resolve(alert_id):
             "is_read":     True,
         }).eq("id", alert_id).eq("owner_id", uid).execute()
         return ok({"updated": True})
+    except Exception as e:
+        return err(str(e))
+
+
+@api_bp.route("/alerts/resolve-all", methods=["POST"])
+@api_auth
+def alert_resolve_all():
+    from datetime import datetime, timezone
+    sb  = get_supabase_with_session()
+    uid = current_user_id()
+    try:
+        res = (sb.table("alerts")
+               .update({"resolved_at": datetime.now(timezone.utc).isoformat(), "is_read": True})
+               .eq("owner_id", uid)
+               .is_("resolved_at", "null")
+               .execute())
+        count = len(res.data) if res.data else 0
+        logger.info("Resolve-all: %d alerts resolved for user %s", count, uid)
+        return ok({"resolved": count})
     except Exception as e:
         return err(str(e))
 

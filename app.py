@@ -36,7 +36,7 @@ if getattr(sys, "frozen", False):
 else:
     _base_dir = os.path.dirname(os.path.abspath(__file__))
 
-from flask import Flask
+from flask import Flask, request, abort
 from config import FLASK_SECRET_KEY
 
 from auth import auth_bp
@@ -51,6 +51,7 @@ import importlib
 profile_bp = getattr(importlib.import_module("profile"), "profile_bp")
 from locations import locations_bp
 from api import api_bp
+from telemetry import telemetry_bp
 
 
 app = Flask(
@@ -71,6 +72,34 @@ app.register_blueprint(history_bp)
 app.register_blueprint(profile_bp)
 app.register_blueprint(locations_bp)
 app.register_blueprint(api_bp)
+app.register_blueprint(telemetry_bp)
+
+
+@app.route("/end-app", methods=["POST"])
+def end_app():
+    """Local-only shutdown. Only accepts requests from localhost."""
+    if request.remote_addr not in ("127.0.0.1", "::1"):
+        abort(403)
+
+    import threading, time
+
+    def _exit():
+        time.sleep(1)
+        os._exit(0)
+
+    threading.Thread(target=_exit, daemon=True).start()
+
+    return (
+        "<!doctype html><html><head><meta charset='utf-8'>"
+        "<title>SmartPetHome</title></head>"
+        "<body style='font-family:sans-serif;display:flex;align-items:center;"
+        "justify-content:center;height:100vh;margin:0;background:#f7f6f3;'>"
+        "<div style='text-align:center'>"
+        "<p style='font-size:2rem'>🐾</p>"
+        "<h2>SmartPetHome is closing.</h2>"
+        "<p style='color:#6b6560'>You can close this tab.</p>"
+        "</div></body></html>"
+    )
 
 
 @app.template_filter("datefmt")
@@ -92,12 +121,28 @@ def _start_mqtt():
     mqtt_client.start_mqtt()
 
 
+def _start_telegram_bot():
+    """Start Telegram bot polling only once when Flask launches."""
+    import telegram_bot
+    telegram_bot.start_bot()
+
+
 if __name__ == "__main__":
     is_frozen   = getattr(sys, "frozen", False)
     is_reloader = os.environ.get("WERKZEUG_RUN_MAIN") == "true"
 
     if is_frozen or is_reloader:
         _start_mqtt()
+        _start_telegram_bot()
+
+        # Open browser once, unless launcher.py is already handling it.
+        # launcher.py sets this env var so we don't open a duplicate tab.
+        if not os.environ.get("SMARTPETHOME_LAUNCHER"):
+            import threading, webbrowser, time
+            def _open():
+                time.sleep(1.5)
+                webbrowser.open("http://127.0.0.1:5000")
+            threading.Thread(target=_open, daemon=True).start()
 
     # Print startup banner manually.
     # Werkzeug is silenced to WARNING so its own "Running on …" line is

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Telemetry — SmartPetHome{% endblock %}
+{% block page_id %}telemetry{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📡 Telemetry</h1>
+  <small class="text-muted">All devices · auto-refreshes every 4 s</small>
+</div>
+
+<!-- Filters -->
+<div class="form-card" style="margin-bottom:1rem;">
+  <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;">
+    <div>
+      <label class="form-label">Device</label>
+      <select id="filter-device" class="form-control" onchange="SPH.loadTelemetry()">
+        <option value="">All devices</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Device type</label>
+      <select id="filter-device-type" class="form-control" onchange="SPH.loadTelemetry()">
+        <option value="">All types</option>
+        <option value="automatic_feeder">Automatic Feeder</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Status</label>
+      <select id="filter-status" class="form-control" onchange="SPH.loadTelemetry()">
+        <option value="">All</option>
+        <option value="green">Green</option>
+        <option value="red">Red</option>
+      </select>
+    </div>
+    <button class="btn btn-sm btn-outline" onclick="SPH.loadTelemetry()">Refresh</button>
+  </div>
+</div>
+
+<!-- Table -->
+<section class="section">
+  <div id="telemetry-table">
+    <p class="text-muted">Loading telemetry…</p>
+  </div>
+</section>
+{% endblock %}

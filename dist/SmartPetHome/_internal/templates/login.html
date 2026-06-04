@@ -22,6 +22,19 @@
     <p class="auth-switch">
       Don't have an account? <a href="{{ url_for('auth.register') }}">Register</a>
     </p>
+
+    <div class="auth-end-app">
+      <form method="POST" action="/end-app" id="shutdown-form">
+        <button type="button" class="btn btn-end-app"
+                onclick="if(confirm('Are you sure you want to close SmartPetHome?')){
+                  this.textContent='Closing…';
+                  this.disabled=true;
+                  document.getElementById('shutdown-form').submit();
+                }">
+          ⏻ End App
+        </button>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}
