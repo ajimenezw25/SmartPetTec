@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Devices — SmartPetHome{% endblock %}
+{% block page_id %}devices{% endblock %}
 
 {% block content %}
 <div class="page-header">
@@ -16,6 +17,7 @@
         <th>Serial</th>
         <th>Assigned To</th>
         <th>Status</th>
+        <th>Last Seen</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -23,38 +25,31 @@
       {% for d in devices %}
       <tr>
         <td><strong>{{ d.device_name }}</strong></td>
-        <td>
-          <span class="badge badge-info">
-            {{ d.device_types.name if d.device_types else '—' }}
-          </span>
-        </td>
+        <td><span class="badge badge-info">{{ d.device_types.name if d.device_types else '—' }}</span></td>
         <td><code>{{ d.serial_number }}</code></td>
         <td>
-          {% if d.pets %}
-            🐾 {{ d.pets.name }}
-          {% elif d.locations %}
-            📍 {{ d.locations.name }}
-          {% else %}
-            <span class="text-muted">Unassigned</span>
-          {% endif %}
+          {% if d.pets %}🐾 {{ d.pets.name }}
+          {% elif d.locations %}📍 {{ d.locations.name }}
+          {% else %}<span class="text-muted">Unassigned</span>{% endif %}
         </td>
         <td>
           <span class="badge badge-{{ 'green' if d.status == 'online' else 'gray' }}">
             {{ d.status }}
           </span>
         </td>
+        <td>{{ d.last_seen_at | datefmt if d.last_seen_at else '—' }}</td>
         <td class="actions-cell">
+          <!-- Device Command Center link -->
+          <a href="{{ url_for('devices.detail', device_id=d.id) }}"
+             class="btn btn-sm btn-primary">🎮 Control</a>
           <a href="{{ url_for('devices.assign', device_id=d.id) }}"
              class="btn btn-sm btn-outline">Assign</a>
-
           {% if d.device_types and d.device_types.slug == 'automatic_feeder' %}
             <a href="{{ url_for('feeder.settings', device_id=d.id) }}"
                class="btn btn-sm btn-outline">⚙️ Feeder</a>
           {% endif %}
-
           <form method="POST" action="{{ url_for('devices.delete', device_id=d.id) }}"
-                onsubmit="return confirm('Delete {{ d.device_name }}? This cannot be undone.');"
-                style="display:inline;">
+                onsubmit="return confirm('Delete this device?');" style="display:inline;">
             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
           </form>
         </td>

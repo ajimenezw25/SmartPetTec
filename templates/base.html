@@ -6,7 +6,8 @@
   <title>{% block title %}SmartPetHome{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
-<body>
+<body data-page="{% block page_id %}default{% endblock %}"
+      {% block body_data %}{% endblock %}>
 
 {% if session.user_id %}
 <nav class="navbar">
@@ -18,14 +19,17 @@
     <a href="{{ url_for('devices.index') }}">Devices</a>
     <a href="{{ url_for('alerts.index') }}">Alerts</a>
     <a href="{{ url_for('history.index') }}">History</a>
-    <a href="{{ url_for('profile.settings') }}">⚙️ Profile</a>
+    <a href="{{ url_for('profile.settings') }}">Profile</a>
   </div>
   <div class="navbar-user">
+    <span id="mqtt-status" class="mqtt-indicator mqtt-off" title="MQTT status">o MQTT</span>
     <span class="user-name">{{ session.display_name }}</span>
     <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-outline">Logout</a>
   </div>
 </nav>
 {% endif %}
+
+<div id="toast-container" class="toast-container"></div>
 
 <main class="container">
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -37,13 +41,13 @@
       </div>
     {% endif %}
   {% endwith %}
-
   {% block content %}{% endblock %}
 </main>
 
 <footer class="footer">
-  <p>SmartPetHome &mdash; Sprint 1 &copy; 2025</p>
+  <p>SmartPetHome &mdash; IoT Pet Care Platform &copy; 2025</p>
 </footer>
 
+<script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>
