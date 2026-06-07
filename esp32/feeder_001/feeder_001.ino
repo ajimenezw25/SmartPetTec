@@ -79,7 +79,7 @@ void runSensorCycle() {
   if (pesoSimulado < umbralPeso) {
     digitalWrite(LED_ROJO,  HIGH);
     digitalWrite(LED_VERDE, LOW);
-    compuerta.write(90);
+    compuerta.write(360);
     Serial.println("Estado: BAJO - Abriendo compuerta");
   } else {
     digitalWrite(LED_ROJO,  LOW);
