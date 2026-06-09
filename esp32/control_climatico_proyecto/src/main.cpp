@@ -12,9 +12,22 @@
 
 #define FAN_PIN 25
 
+// 7 segmentos
+#define SEG_A 13
+#define SEG_B 16
+#define SEG_C 17
+#define SEG_D 27
+#define SEG_E 26
+#define SEG_F 12
+#define SEG_G 23
+#define SEG_DP 14
+
+#define DIGIT1 18
+#define DIGIT2 19
+
 // Red y broker
-#define WIFI_SSID  "Familia Jiménez Wilhelm 2.4Ghz"
-#define WIFI_PASS  "Wilhelm25"
+#define WIFI_SSID  "J ARIAS -2.4G"
+#define WIFI_PASS  "Barra3126"
 #define MQTT_HOST  "broker.emqx.io"
 #define MQTT_PORT  1883
 
@@ -51,6 +64,19 @@ float maxTemp = 28.0;
 bool autoControl = true;
 bool actuatorAutoTriggered = false;
 bool manualControl = false;
+
+const bool digits[10][7] = {
+  {1,1,1,1,1,1,0}, // 0
+  {0,1,1,0,0,0,0}, // 1
+  {1,1,0,1,1,0,1}, // 2
+  {1,1,1,1,0,0,1}, // 3
+  {0,1,1,0,0,1,1}, // 4
+  {1,0,1,1,0,1,1}, // 5
+  {1,0,1,1,1,1,1}, // 6
+  {1,1,1,0,0,0,0}, // 7
+  {1,1,1,1,1,1,1}, // 8
+  {1,1,1,1,0,1,1}  // 9
+};
 
 void publishTelemetry() {
     StaticJsonDocument<384> doc;
@@ -242,12 +268,65 @@ void connectMqtt() {
     }
 }
 
+void showDigit(int digit) {
+
+  digitalWrite(SEG_A, digits[digit][0] ? LOW : HIGH);
+  digitalWrite(SEG_B, digits[digit][1] ? LOW : HIGH);
+  digitalWrite(SEG_C, digits[digit][2] ? LOW : HIGH);
+  digitalWrite(SEG_D, digits[digit][3] ? LOW : HIGH);
+  digitalWrite(SEG_E, digits[digit][4] ? LOW : HIGH);
+  digitalWrite(SEG_F, digits[digit][5] ? LOW : HIGH);
+  digitalWrite(SEG_G, digits[digit][6] ? LOW : HIGH);
+
+  digitalWrite(SEG_DP, HIGH);
+}
+
+void updateDisplay() {
+
+  int temp = (int)round(temperaturaActual);
+
+  if(temp < 0) temp = 0;
+  if(temp > 99) temp = 99;
+
+  int decenas = temp / 10;
+  int unidades = temp % 10;
+
+  // dígito izquierdo
+  digitalWrite(DIGIT2, HIGH);
+  digitalWrite(DIGIT1, LOW);
+
+  showDigit(decenas);
+
+  delayMicroseconds(2000);
+
+  // dígito derecho
+  digitalWrite(DIGIT1, HIGH);
+  digitalWrite(DIGIT2, LOW);
+
+  showDigit(unidades);
+
+  delayMicroseconds(2000);
+}
+
 void setup() {
     Serial.begin(115200);
 
     dht.begin();
 
     pinMode(FAN_PIN, OUTPUT);
+
+    pinMode(SEG_A, OUTPUT);
+    pinMode(SEG_B, OUTPUT);
+    pinMode(SEG_C, OUTPUT);
+    pinMode(SEG_D, OUTPUT);
+    pinMode(SEG_E, OUTPUT);
+    pinMode(SEG_F, OUTPUT);
+    pinMode(SEG_G, OUTPUT);
+    pinMode(SEG_DP, OUTPUT);
+
+    pinMode(DIGIT1, OUTPUT);
+    pinMode(DIGIT2, OUTPUT);
+
     digitalWrite(FAN_PIN, LOW);
 
     delay(2000);
@@ -260,6 +339,9 @@ void setup() {
 }
 
 void loop() {
+
+    updateDisplay();
+
     if (WiFi.status() != WL_CONNECTED) {
         Serial.println("[WiFi] Reconectando...");
         connectWifi();
