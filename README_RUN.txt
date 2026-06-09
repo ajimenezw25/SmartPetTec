@@ -1,64 +1,104 @@
 ============================================================
-  SmartPetHome -- Quick Start Guide
+  SmartPetHome - Windows Release
+  IoT Pet Care Platform
 ============================================================
 
-RUNNING THE EXECUTABLE
-------------------------
-1. Open the SmartPetHome folder.
+QUICK START
+-----------
+1. Make sure .env is present in this folder.
+   If it is missing, copy .env.example to .env and fill in:
 
-2. Check that .env exists in the same folder as SmartPetHome.exe.
-   If it is missing:
-     - Copy .env.example to .env
-     - Open .env and fill in your credentials (see below).
+     SUPABASE_URL=
+     SUPABASE_KEY=
+     SUPABASE_SERVICE_KEY=
+     FLASK_SECRET_KEY=
+     MQTT_HOST=broker.emqx.io
+     MQTT_PORT=1883
+     MQTT_TLS=false
+     MQTT_CLIENT_ID=smartpethome-backend
+     TELEGRAM_BOT_TOKEN=    (optional - for Telegram alerts)
+     LOG_LEVEL=INFO
 
-3. Double-click SmartPetHome.exe.
-   The app starts Flask, connects to MQTT, and opens your
-   browser at http://127.0.0.1:5000 automatically.
+2. Double-click SmartPetHome.exe
 
-   If the browser does not open, navigate to:
-     http://127.0.0.1:5000
+3. A console window opens showing the startup sequence:
 
-4. To stop the app:
-     - Use the "End App" button on the login page, or
-     - Close the console window.
+     SmartPetHome - starting...
+     [INFO] Launching SmartPetHome...
+     [INFO] Loaded .env from <path>
+     [INFO] Importing application modules...
+     [INFO] Application modules loaded OK.
+     [INFO] Starting MQTT...
+     [INFO] Starting Telegram bot...
+     [INFO] Starting scheduler...
+     SmartPetHome - running
+     Local : http://127.0.0.1:5000
 
+4. Your browser opens automatically at http://127.0.0.1:5000
+   If it does not open, navigate there manually.
 
-REQUIRED .env KEYS
--------------------
-SUPABASE_URL=
-SUPABASE_KEY=
-SUPABASE_SERVICE_KEY=
-FLASK_SECRET_KEY=
-MQTT_HOST=broker.emqx.io
-MQTT_PORT=1883
-MQTT_TLS=false
-MQTT_CLIENT_ID=smartpethome-backend
-TELEGRAM_BOT_TOKEN=        (optional — for Telegram alerts)
-LOG_LEVEL=INFO
+5. Keep the console window open while using the app.
+   Closing it stops SmartPetHome.
+
+6. To stop: close the console, or click "End App" on the login page.
 
 
-RUNNING FROM SOURCE (developers)
-----------------------------------
-1. Make sure Python 3.11+ is on PATH.
-2. Copy .env.example to .env and fill in credentials.
-3. Double-click run_app.bat.
-   - Creates .venv on first run.
-   - Installs requirements.txt.
-   - Opens browser at http://127.0.0.1:5000.
+IMPORTANT NOTES
+---------------
+- This is a fully bundled executable.
+  Python does NOT need to be installed on the target machine.
+
+- The .env file must be in the same folder as SmartPetHome.exe.
+  The app will warn you if it is missing or incomplete.
+
+- The app runs locally only (127.0.0.1).
+  It is not exposed to the internet or your local network.
+
+- MQTT uses the EMQX public broker (broker.emqx.io).
+  Internet access is required for ESP32 device communication.
 
 
 TELEGRAM ALERTS (optional)
-----------------------------
+---------------------------
 1. Open @smartpettec_alerts_bot on Telegram.
 2. Send /start -- the bot replies with your Chat ID.
-3. Log in to SmartPetHome -> menu -> Telegram -> paste ID -> Save.
+3. In the app: menu -> Telegram -> paste Chat ID -> Save.
 
 
-TROUBLESHOOTING
-----------------
-- "Cannot connect to Supabase"  -> check SUPABASE_URL / SUPABASE_KEY in .env
-- "MQTT not connected" badge    -> broker.emqx.io may be temporarily unavailable
-- Browser does not open         -> navigate to http://127.0.0.1:5000 manually
-- App closes immediately        -> check crash.log in the SmartPetHome folder
+IF SOMETHING GOES WRONG
+------------------------
+- Read the console window -- it shows the full error.
+- A crash.log file is created in this folder if the app crashes
+  on startup. Share it when reporting issues.
 
+Common issues:
+  * Missing or incomplete .env file
+  * Wrong SUPABASE_URL / SUPABASE_KEY
+  * Port 5000 already in use (close other apps using that port)
+  * No internet connection (Supabase and MQTT require internet)
+
+
+FILE STRUCTURE
+--------------
+  SmartPetHome.exe      <- Launch this
+  _internal\            <- Bundled Python runtime (do not delete)
+  .env.example          <- Template -- copy to .env and fill in
+  .env                  <- YOUR credentials (never share this file)
+  requirements.txt      <- Reference only (not needed by the EXE)
+  README_RUN.txt        <- This file
+  crash.log             <- Created only if the app crashes on startup
+
+
+RUNNING FROM SOURCE (developers)
+---------------------------------
+1. Python 3.11+ must be on PATH.
+2. Copy .env.example to .env and fill in credentials.
+3. Double-click run_app.bat
+   - Creates .venv on first run
+   - Installs requirements.txt
+   - Opens browser at http://127.0.0.1:5000
+
+
+============================================================
+  SmartPetHome - Keeping Pets Happy
 ============================================================

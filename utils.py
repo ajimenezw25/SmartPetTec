@@ -2,16 +2,14 @@
 utils.py
 --------
 Shared helper utilities used across blueprints.
-
-KEY CHANGE from original:
-  get_supabase_with_session() now also handles an expired or invalid
-  token gracefully — it clears the Flask session and lets the
-  login_required decorator redirect to login, instead of crashing.
 """
 
+import logging
 from functools import wraps
 from flask import session, redirect, url_for, flash
 from config import supabase
+
+logger = logging.getLogger(__name__)
 
 
 def login_required(f):
@@ -22,6 +20,7 @@ def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if "user_id" not in session:
+            logger.info("SESSION redirect to login — user_id missing from session")
             flash("Please log in to continue.", "warning")
             return redirect(url_for("auth.login"))
         return f(*args, **kwargs)
@@ -33,32 +32,46 @@ def get_supabase_with_session():
     Returns the shared Supabase client after restoring the user's
     auth session from Flask session storage.
 
-    HOW FLASK SESSION + SUPABASE AUTH WORK TOGETHER:
-    ──────────────────────────────────────────────────
-    - On login, Supabase returns an access_token (JWT) and refresh_token.
-    - We store both in Flask's signed+encrypted session cookie.
-      The cookie is HttpOnly and never readable by JavaScript.
-    - On every subsequent request, this function calls set_session()
-      so the Supabase client attaches the user's JWT to every DB query
-      as: Authorization: Bearer <access_token>
-    - Supabase/Postgres receives the JWT, validates it, sets auth.uid()
-      internally, and RLS policies evaluate correctly.
-
-    If the token is missing or invalid, we clear the session so the
-    login_required decorator can redirect cleanly on the next check.
+    Token handling:
+      1. Try set_session() with the stored access + refresh tokens.
+      2. If that fails (token expired), attempt a silent token refresh.
+      3. If the refresh succeeds, update the session cookie with the new tokens.
+      4. If the refresh also fails, keep the Flask session intact and log a
+         warning — the user stays "logged in" in the app but Supabase queries
+         that require RLS may fail gracefully on the affected request.
+      5. NEVER call session.clear() here. The only place that should clear the
+         session is the explicit /logout route.
     """
     access_token  = session.get("access_token")
     refresh_token = session.get("refresh_token")
 
     if not access_token or not refresh_token:
-        return supabase  # Unauthenticated — login_required will handle it
+        logger.debug("SESSION no tokens in session — returning unauthenticated client")
+        return supabase
 
     try:
         supabase.auth.set_session(access_token, refresh_token)
-    except Exception:
-        # Token is expired or invalid. Clear the session so the user
-        # gets redirected to login on the next login_required check.
-        session.clear()
+        return supabase
+    except Exception as set_err:
+        logger.debug("SESSION set_session failed (%s) — attempting token refresh", set_err)
+
+    # set_session failed — try to silently refresh the token
+    try:
+        refreshed = supabase.auth.refresh_session(refresh_token)
+        if refreshed and refreshed.session:
+            new_access  = refreshed.session.access_token
+            new_refresh = refreshed.session.refresh_token
+            session["access_token"]  = new_access
+            session["refresh_token"] = new_refresh
+            supabase.auth.set_session(new_access, new_refresh)
+            logger.info("SESSION token refreshed silently for user=%s", session.get("user_id"))
+        else:
+            logger.warning("SESSION token refresh returned no session — keeping Flask session as-is")
+    except Exception as refresh_err:
+        # Refresh failed (network issue, truly expired refresh token, etc.)
+        # Do NOT clear the session — that would log the user out unexpectedly.
+        # The route will handle any DB errors that result from stale tokens.
+        logger.warning("SESSION token refresh failed: %s — keeping Flask session intact", refresh_err)
 
     return supabase
 

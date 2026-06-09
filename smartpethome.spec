@@ -68,7 +68,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=True,           # keep console so users can see logs / errors
-    icon=None,
+    icon=os.path.join(_here, 'smartpet-icon.ico'),
 )
 
 coll = COLLECT(

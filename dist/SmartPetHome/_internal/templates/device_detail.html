@@ -65,7 +65,19 @@
       {% if device.device_types and device.device_types.slug == 'automatic_feeder' %}
         <a href="{{ url_for('feeder.settings', device_id=device.id) }}"
            class="btn btn-outline" style="margin-top:.75rem;display:inline-block;">
-          ⚙️ Feeder Configuration
+          ⚙️ Feeder Settings &amp; Diet Schedule
+        </a>
+      {% endif %}
+      {% if device.device_types and device.device_types.slug == 'water_dispenser' %}
+        <a href="{{ url_for('water.settings', device_id=device.id) }}"
+           class="btn btn-outline" style="margin-top:.75rem;display:inline-block;">
+          💧 Water Dispenser Settings
+        </a>
+      {% endif %}
+      {% if device.device_types and device.device_types.slug == 'automatic_access_door' %}
+        <a href="{{ url_for('door.schedule', device_id=device.id) }}"
+           class="btn btn-outline" style="margin-top:.75rem;display:inline-block;">
+          🚪 Door Schedule
         </a>
       {% endif %}
       <a href="{{ url_for('telemetry.index') }}"

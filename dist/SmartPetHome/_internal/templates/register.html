@@ -4,7 +4,13 @@
 {% block content %}
 <div class="auth-page">
   <div class="auth-card">
-    <h1>🐾 SmartPetHome</h1>
+    <img src="{{ url_for('static', filename='img/smartpethome-logo.png') }}"
+         alt="SmartPetHome"
+         class="brand-logo brand-logo-login"
+         style="display:none"
+         onload="this.style.display='block'"
+         onerror="this.remove(); document.getElementById('register-title').style.display='block'">
+    <h1 id="register-title" style="display:none; margin-bottom:.5rem;">🐾 SmartPetHome</h1>
     <h2>Create Account</h2>
 
     <form method="POST" action="{{ url_for('auth.register') }}">

@@ -46,4 +46,53 @@
     <dd><code>{{ session.user_id }}</code></dd>
   </dl>
 </div>
+
+<div class="form-card">
+  <h2>🎨 Appearance</h2>
+  <p style="font-size:.875rem;color:var(--color-text-muted);margin-bottom:.25rem;">
+    Choose how SmartPetHome looks on this device. Your preference is saved locally.
+  </p>
+
+  <div class="theme-toggle-card">
+    <div class="theme-toggle-label">
+      Dark Mode
+      <small id="theme-status-label">Currently: Light</small>
+    </div>
+    <label class="toggle-switch" aria-label="Toggle dark mode">
+      <input type="checkbox" id="theme-toggle-input">
+      <span class="toggle-track"></span>
+    </label>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var input  = document.getElementById('theme-toggle-input');
+    var label  = document.getElementById('theme-status-label');
+    var root   = document.documentElement;
+    var KEY    = 'sph-theme';
+
+    function applyTheme(dark) {
+      if (dark) {
+        root.setAttribute('data-theme', 'dark');
+        label.textContent = 'Currently: Dark';
+        input.checked = true;
+      } else {
+        root.removeAttribute('data-theme');
+        label.textContent = 'Currently: Light';
+        input.checked = false;
+      }
+    }
+
+    // Initialise from saved preference
+    applyTheme(localStorage.getItem(KEY) === 'dark');
+
+    // Handle toggle
+    input.addEventListener('change', function () {
+      var isDark = input.checked;
+      localStorage.setItem(KEY, isDark ? 'dark' : 'light');
+      applyTheme(isDark);
+    });
+  })();
+</script>
 {% endblock %}

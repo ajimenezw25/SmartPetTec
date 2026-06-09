@@ -351,18 +351,72 @@
     }
 
     const tableRows = rows.map(r => {
-      const color = r.status_color === "red"   ? "badge-red"
-                  : r.status_color === "green" ? "badge-green"
+      const color = r.status_color === "red"    ? "badge-red"
+                  : r.status_color === "green"  ? "badge-green"
+                  : r.status_color === "yellow" ? "badge-warning"
                   : "badge-gray";
       const eventBadge = r.event_type
         ? `<span class="badge badge-info" style="font-size:.75rem;">${esc(r.event_type)}</span>`
         : "—";
-      const vals = [
-        r.dispensed_grams  != null ? `dispensed: ${r.dispensed_grams}g` : null,
-        r.consumed_grams   != null ? `consumed: ${r.consumed_grams}g`   : null,
-        r.leftover_grams   != null ? `leftover: ${r.leftover_grams}g`   : null,
-        r.food_remaining   != null ? `remaining: ${r.food_remaining}`    : null,
-      ].filter(Boolean).join(" · ") || "—";
+
+      let vals;
+      const slug = r.device_type_slug || "";
+      if (slug === "automatic_feeder") {
+        vals = [
+          r.dispensed_grams  != null ? `dispensed: ${r.dispensed_grams}g` : null,
+          r.consumed_grams   != null ? `consumed: ${r.consumed_grams}g`   : null,
+          r.leftover_grams   != null ? `leftover: ${r.leftover_grams}g`   : null,
+          r.food_remaining   != null ? `remaining: ${r.food_remaining}`   : null,
+        ].filter(Boolean).join(" · ") || "—";
+      } else if (slug === "water_dispenser") {
+        vals = [
+          r.water_level        != null ? `level: ${r.water_level}`               : null,
+          r.water_level_before != null ? `before: ${r.water_level_before}`        : null,
+          r.water_level_after  != null ? `after: ${r.water_level_after}`          : null,
+          r.refill_triggered           ? `refill: yes`                            : null,
+          r.supply_failure             ? `supply failure`                         : null,
+          r.valve_state        != null ? `valve: ${r.valve_state}`                : null,
+        ].filter(Boolean).join(" · ") || "—";
+      } else if (slug === "automatic_access_door") {
+        vals = [
+          r.action     ? `action: ${r.action}`          : null,
+          r.source     ? `source: ${r.source}`          : null,
+          r.door_state ? `state: ${r.door_state}`       : null,
+          r.success    != null ? `success: ${r.success}` : null,
+          r.error_message ? `error: ${r.error_message}` : null,
+        ].filter(Boolean).join(" · ") || "—";
+      } else if (slug === "environmental_monitor") {
+        vals = [
+          r.temperature        != null ? `temp: ${r.temperature}°C`    : null,
+          r.humidity           != null ? `humidity: ${r.humidity}%`    : null,
+          r.actuator_triggered         ? `actuator: on`                : null,
+        ].filter(Boolean).join(" · ") || "—";
+      } else if (slug === "motion_monitoring_network") {
+        vals = [
+          r.sensor_code          ? `sensor: ${r.sensor_code}`                        : null,
+          r.inactivity_minutes   != null ? `inactivity: ${r.inactivity_minutes}min` : null,
+        ].filter(Boolean).join(" · ") || "—";
+      } else if (slug === "audio_communication") {
+        vals = [
+          r.audio_url     ? `file: ${r.audio_url}`          : null,
+          r.error_message ? `error: ${r.error_message}`     : null,
+        ].filter(Boolean).join(" · ") || "—";
+      } else if (slug === "interactive_reward_system") {
+        vals = [
+          r.pressed_button     != null ? `pressed: ${r.pressed_button}`      : null,
+          r.winning_button     != null ? `winning: ${r.winning_button}`      : null,
+          r.daily_reward_count != null ? `daily: ${r.daily_reward_count}`    : null,
+        ].filter(Boolean).join(" · ") || "—";
+      } else if (slug === "automatic_ball_launcher") {
+        vals = [
+          r.launch_source           ? `source: ${r.launch_source}`                       : null,
+          r.trajectory_number       != null ? `traj: ${r.trajectory_number}`             : null,
+          r.ball_count_after_launch != null ? `balls left: ${r.ball_count_after_launch}` : null,
+          r.error_message           ? `error: ${r.error_message}`                        : null,
+        ].filter(Boolean).join(" · ") || "—";
+      } else {
+        vals = "—";
+      }
 
       return `<tr>
         <td style="white-space:nowrap;">${formatDate(r.created_at)}</td>

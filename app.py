@@ -36,6 +36,7 @@ if getattr(sys, "frozen", False):
 else:
     _base_dir = os.path.dirname(os.path.abspath(__file__))
 
+from datetime import timedelta
 from flask import Flask, request, abort
 from config import FLASK_SECRET_KEY
 
@@ -53,6 +54,7 @@ profile_bp = getattr(importlib.import_module("profile"), "profile_bp")
 from locations import locations_bp
 from api import api_bp
 from telemetry import telemetry_bp
+from door import door_bp
 
 
 app = Flask(
@@ -61,7 +63,8 @@ app = Flask(
     static_folder=os.path.join(_base_dir, "static"),
 )
 
-app.secret_key = FLASK_SECRET_KEY
+app.secret_key                = FLASK_SECRET_KEY
+app.permanent_session_lifetime = timedelta(hours=8)
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(dashboard_bp)
@@ -75,6 +78,7 @@ app.register_blueprint(profile_bp)
 app.register_blueprint(locations_bp)
 app.register_blueprint(api_bp)
 app.register_blueprint(telemetry_bp)
+app.register_blueprint(door_bp)
 
 
 @app.route("/end-app", methods=["POST"])
@@ -129,6 +133,12 @@ def _start_telegram_bot():
     telegram_bot.start_bot()
 
 
+def _start_scheduler():
+    """Start the background schedule checker once when Flask launches."""
+    import scheduler
+    scheduler.start_scheduler()
+
+
 if __name__ == "__main__":
     is_frozen   = getattr(sys, "frozen", False)
     is_reloader = os.environ.get("WERKZEUG_RUN_MAIN") == "true"
@@ -136,6 +146,7 @@ if __name__ == "__main__":
     if is_frozen or is_reloader:
         _start_mqtt()
         _start_telegram_bot()
+        _start_scheduler()
 
         # Open browser once, unless launcher.py is already handling it.
         # launcher.py sets this env var so we don't open a duplicate tab.

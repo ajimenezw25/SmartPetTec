@@ -1,166 +1,132 @@
 {% extends "base.html" %}
-{% block title %}Feeder Settings — SmartPetHome{% endblock %}
+{% block title %}Feeding Schedule — {{ device.device_name }}{% endblock %}
 
 {% block content %}
 <div class="page-header">
-  <h1>⚙️ Feeder Settings</h1>
-  <a href="{{ url_for('devices.index') }}" class="btn btn-outline">← Back to Devices</a>
-</div>
-
-<div class="device-info" style="margin-bottom:1.25rem;">
-  <p>
-    <strong>{{ device.device_name }}</strong> &mdash;
-    <code>{{ device.serial_number }}</code>
-    {% if device.pets %}
-      &mdash; 🐾 Assigned to <strong>{{ device.pets.name }}</strong>
-    {% endif %}
-  </p>
-</div>
-
-{# ── SECTION 1: Diet Mode ── #}
-<div class="form-card">
-  <h2>🍽️ Diet Mode &amp; Thresholds</h2>
-
-  <div class="mode-explainer">
-    <div class="mode-box">
-      <strong>Complete Bowl</strong>
-      <p>Fills the bowl to maximum capacity at each scheduled time.
-         Best for pets that self-regulate. The feeder tops up whatever
-         the weight sensor shows is missing.</p>
-    </div>
-    <div class="mode-box">
-      <strong>Redistribute Daily Diet</strong>
-      <p>Splits a total daily ration across all enabled schedules.
-         If the pet skips a meal (leftover detected), the next portion
-         is reduced proportionally. Best for portion-controlled diets.</p>
-    </div>
+  <div>
+    <h1>🍽️ Feeding Schedule</h1>
+    <p class="page-subtitle">
+      {{ device.device_name }} &mdash; <code>{{ device.serial_number }}</code>
+      {% if device.pets %}&mdash; 🐾 {{ device.pets.name }}{% endif %}
+    </p>
   </div>
+  <a href="{{ url_for('devices.detail', device_id=device.id) }}" class="btn btn-outline">← Back to Device</a>
+</div>
+
+<div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1rem;font-size:.85rem;color:#555;flex-wrap:wrap;">
+  <span>🕐 App local time: <strong id="local-clock">—</strong></span>
+  <span>
+    Scheduler status:
+    {% if sched_status and sched_status.running %}
+      <span style="color:#16a34a;font-weight:600;">● running</span>
+    {% else %}
+      <span style="color:#dc2626;font-weight:600;">● stopped</span>
+    {% endif %}
+    {% if sched_status and sched_status.last_check %}
+      <span style="color:#888;">(last check: {{ sched_status.last_check }})</span>
+    {% endif %}
+  </span>
+</div>
+<script>
+  function _tickClock() {
+    var d = new Date();
+    var pad = function(n){ return n < 10 ? '0'+n : n; };
+    document.getElementById('local-clock').textContent =
+      pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+  }
+  _tickClock();
+  setInterval(_tickClock, 1000);
+</script>
+
+<div class="form-card">
+  <h2>⏰ Diet Schedule</h2>
+  <p class="text-muted">
+    The backend sends a <code>dispense_food</code> command at each enabled time.
+    Each execution creates an app alert and Telegram notification.
+  </p>
 
   <form method="POST" action="{{ url_for('feeder.settings', device_id=device.id) }}">
-    <input type="hidden" name="action" value="save_config" />
 
-    <div class="form-group">
-      <label>Feeding Mode <span class="required">*</span></label>
-      <div class="radio-group">
-        <label class="radio-label">
-          <input type="radio" name="feeding_mode" value="complete_bowl"
-                 {{ 'checked' if config and config.feeding_mode == 'complete_bowl' }} />
-          <strong>Complete Bowl</strong>
-        </label>
-        <label class="radio-label">
-          <input type="radio" name="feeding_mode" value="redistribute_daily_diet"
-                 {{ 'checked' if not config or config.feeding_mode == 'redistribute_daily_diet' }} />
-          <strong>Redistribute Daily Diet</strong>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="grams">Grams per feeding <span class="required">*</span></label>
+        <input type="number" id="grams" name="grams"
+               step="0.1" min="1" required
+               value="{{ grams if grams else '' }}"
+               placeholder="80" />
+      </div>
+      <div class="form-group form-group--checkbox" style="justify-content:center;padding-top:1.5rem;">
+        <label>
+          <input type="checkbox" name="enabled" {{ 'checked' if enabled }} />
+          Enabled
         </label>
       </div>
     </div>
 
     <div class="form-row">
       <div class="form-group">
-        <label for="daily_tolerance_grams">Daily Tolerance (g)</label>
-        <input type="number" id="daily_tolerance_grams" name="daily_tolerance_grams"
-               step="0.1" min="0"
-               value="{{ config.daily_tolerance_grams if config else 10 }}" />
-        <small>Acceptable deviation from target. Affects green/yellow/red status.</small>
+        <label for="feeding_time_1">Feeding Time 1</label>
+        <input type="time" id="feeding_time_1" name="feeding_time_1"
+               value="{{ sched1.feeding_time[:5] if sched1 else '' }}" />
+        <small>Leave blank to skip.</small>
       </div>
       <div class="form-group">
-        <label for="low_food_threshold_grams">Low Food Alert (g)</label>
-        <input type="number" id="low_food_threshold_grams" name="low_food_threshold_grams"
-               step="0.1" min="0"
-               value="{{ config.low_food_threshold_grams if config else 100 }}" />
-        <small>Alert fires when food remaining drops below this weight.</small>
+        <label for="feeding_time_2">Feeding Time 2</label>
+        <input type="time" id="feeding_time_2" name="feeding_time_2"
+               value="{{ sched2.feeding_time[:5] if sched2 else '' }}" />
+        <small>Leave blank to skip.</small>
       </div>
     </div>
 
     <div class="form-actions">
-      <button type="submit" class="btn btn-primary">Save Configuration</button>
+      <button type="submit" class="btn btn-primary">Save Schedule</button>
     </div>
   </form>
 </div>
 
-{# ── SECTION 2: Feeding Schedules ── #}
 <div class="form-card">
-  <h2>🕐 Feeding Schedules</h2>
-  <p class="text-muted">
-    Schedules define when and how much the feeder dispenses.
-    The prototype typically uses up to 3 times per day.
-    {% if config %}
-      Total daily target:
-      <strong>{{ schedules | selectattr('enabled') | sum(attribute='target_grams') | round(1) }} g</strong>
-      across {{ schedules | selectattr('enabled') | list | length }} enabled schedule(s).
-    {% endif %}
+  <h2>🧪 Test Scheduled Feeding</h2>
+  <p class="text-muted" style="margin-bottom:1rem;">
+    Send a <code>dispense_food</code> command immediately using the saved grams value.
+    Save the schedule first, then use this button. MQTT must be connected.
   </p>
-
-  {% if schedules %}
-    <table class="data-table" style="margin-bottom:1.5rem;">
-      <thead>
-        <tr>
-          <th>Time</th>
-          <th>Target (g)</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for s in schedules %}
-        <tr class="{{ '' if s.enabled else 'row-disabled' }}">
-          <td><strong>{{ s.feeding_time[:5] }}</strong></td>
-          <td>{{ s.target_grams }} g</td>
-          <td>
-            <form method="POST"
-                  action="{{ url_for('feeder.toggle_schedule', device_id=device.id, sched_id=s.id) }}"
-                  style="display:inline;">
-              <button type="submit"
-                      class="btn btn-sm {{ 'btn-success' if s.enabled else 'btn-outline' }}">
-                {{ '✓ Enabled' if s.enabled else 'Disabled' }}
-              </button>
-            </form>
-          </td>
-          <td class="actions-cell">
-            <a href="{{ url_for('feeder.edit_schedule', device_id=device.id, sched_id=s.id) }}"
-               class="btn btn-sm btn-outline">Edit</a>
-            <form method="POST"
-                  action="{{ url_for('feeder.delete_schedule', device_id=device.id, sched_id=s.id) }}"
-                  onsubmit="return confirm('Remove this schedule?');">
-              <button type="submit" class="btn btn-sm btn-danger">Remove</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <div class="empty-state" style="padding:1rem;">
-      <p>No schedules yet.{% if not config %} Save the configuration above first.{% endif %}</p>
-    </div>
-  {% endif %}
-
-  {# Add schedule form — only shown when config exists #}
-  {% if config %}
-    <h3>Add New Schedule</h3>
-    <form method="POST" action="{{ url_for('feeder.settings', device_id=device.id) }}">
-      <input type="hidden" name="action" value="add_schedule" />
-      <div class="form-row">
-        <div class="form-group">
-          <label for="feeding_time">Feeding Time <span class="required">*</span></label>
-          <input type="time" id="feeding_time" name="feeding_time" required />
-        </div>
-        <div class="form-group">
-          <label for="target_grams">Target Grams <span class="required">*</span></label>
-          <input type="number" id="target_grams" name="target_grams"
-                 step="0.1" min="1" required placeholder="80" />
-        </div>
-        <div class="form-group form-group--checkbox" style="justify-content:center;padding-top:1.5rem;">
-          <label>
-            <input type="checkbox" name="enabled" checked />
-            Enabled
-          </label>
-        </div>
-      </div>
-      <button type="submit" class="btn btn-primary">+ Add Schedule</button>
-    </form>
-  {% else %}
-    <div class="info-banner">Save the diet configuration above before adding schedules.</div>
-  {% endif %}
+  <form method="POST" action="{{ url_for('feeder.test_feeding', device_id=device.id) }}">
+    <button type="submit" class="btn btn-outline"
+            onclick="return confirm('Send dispense_food now ({{ grams | int }} g)?');">
+      🟢 Test Scheduled Feeding Now
+    </button>
+  </form>
 </div>
+
+{% if sched1 or sched2 %}
+<div class="form-card">
+  <h2>📋 Current Schedule</h2>
+  <dl class="info-list">
+    <dt>Grams</dt>
+    <dd><strong>{{ grams | round(0) | int }} g</strong> per feeding</dd>
+    <dt>Time 1</dt>
+    <dd>
+      {% if sched1 %}
+        <strong>{{ sched1.feeding_time[:5] }}</strong>
+      {% else %}
+        <span class="text-muted">— not set</span>
+      {% endif %}
+    </dd>
+    <dt>Time 2</dt>
+    <dd>
+      {% if sched2 %}
+        <strong>{{ sched2.feeding_time[:5] }}</strong>
+      {% else %}
+        <span class="text-muted">— not set</span>
+      {% endif %}
+    </dd>
+    <dt>Status</dt>
+    <dd>
+      <span class="badge {{ 'badge-green' if enabled else 'badge-gray' }}">
+        {{ 'Enabled' if enabled else 'Disabled' }}
+      </span>
+    </dd>
+  </dl>
+</div>
+{% endif %}
 {% endblock %}

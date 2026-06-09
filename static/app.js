@@ -356,7 +356,7 @@
                   : r.status_color === "yellow" ? "badge-warning"
                   : "badge-gray";
       const eventBadge = r.event_type
-        ? `<span class="badge badge-info" style="font-size:.75rem;">${esc(r.event_type)}</span>`
+        ? `<span class="badge badge-info">${esc(r.event_type)}</span>`
         : "—";
 
       let vals;

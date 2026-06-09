@@ -12,8 +12,11 @@ KEY CHANGE from original:
   user metadata during sign_up so the trigger can read them.
 """
 
+import logging
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from config import supabase
+
+logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -60,11 +63,13 @@ def register():
             # sign_up() returns a live session immediately.
             # We log the user straight in so they don't have to re-enter credentials.
             if res.session:
+                session.permanent        = True
                 session["user_id"]       = res.user.id
                 session["user_email"]    = res.user.email
                 session["access_token"]  = res.session.access_token
                 session["refresh_token"] = res.session.refresh_token
                 session["display_name"]  = display_name
+                logger.info("SESSION registered+login user=%s permanent=True", res.user.id)
 
                 flash(f"Welcome, {display_name}! Your account has been created.", "success")
                 return redirect(url_for("dashboard.index"))
@@ -110,6 +115,7 @@ def login():
             # Store tokens in Flask's encrypted session cookie.
             # These are restored on every request by get_supabase_with_session()
             # so that RLS policies receive the correct auth.uid().
+            session.permanent        = True
             session["user_id"]       = res.user.id
             session["user_email"]    = res.user.email
             session["access_token"]  = res.session.access_token
@@ -129,10 +135,10 @@ def login():
                 )
                 display_name = profile.data.get("display_name", email)
             except Exception:
-                # Profile fetch failing should never block login
                 display_name = email
 
             session["display_name"] = display_name
+            logger.info("SESSION login user=%s permanent=True", res.user.id)
 
             flash(f"Welcome back, {display_name}!", "success")
             return redirect(url_for("dashboard.index"))
@@ -149,10 +155,12 @@ def login():
 
 @auth_bp.route("/logout")
 def logout():
+    user_id = session.get("user_id", "unknown")
     try:
         supabase.auth.sign_out()
     except Exception:
-        pass  # Sign-out errors should never prevent session clearing
+        pass
     session.clear()
+    logger.info("SESSION logout explicit user=%s — session cleared", user_id)
     flash("You have been logged out.", "info")
     return redirect(url_for("auth.login"))

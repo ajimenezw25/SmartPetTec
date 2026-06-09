@@ -1,50 +1,31 @@
 """
 feeder.py
 ---------
-Blueprint for automatic feeder configuration and schedule management.
+Blueprint for the automatic feeder diet schedule page.
 
-DIET MODE EXPLANATION:
-──────────────────────
-Two modes are supported in feeder_configurations.feeding_mode:
+UI: one simple form — grams, feeding_time_1, feeding_time_2, enabled.
+Storage: two rows in feeding_schedules (one per time slot), both with the
+same target_grams value and the same enabled flag.
+feeder_configurations is auto-created with defaults if missing so the user
+never has to interact with diet-mode or threshold settings.
 
-  1. complete_bowl
-     The feeder dispenses food up to the bowl's maximum capacity each
-     time a schedule fires, regardless of what is already in the bowl.
-     Use case: pets that self-regulate and prefer a full bowl available
-     at all times. The hardware will check the current weight sensor
-     reading and top up the difference.
-
-  2. redistribute_daily_diet
-     A daily ration (target_grams × number of schedules) is calculated
-     and spread across all enabled feeding times. If the pet did not eat
-     at a previous meal (leftover detected), the next meal is reduced
-     proportionally. The tolerance band (daily_tolerance_grams) defines
-     how much variance is acceptable before triggering a yellow/red alert.
-     Use case: weight-management diets, portion-controlled feeding.
-
-Both modes write events to feeding_events. The status_color field
-(green/yellow/red) is set by the hardware based on how closely actual
-consumption matched the target, relative to the tolerance setting.
-
-SCHEDULE FLOW:
-  - The physical feeder polls feeding_schedules from Supabase via the API.
-  - It fires a dispense action at each enabled feeding_time.
-  - After dispensing it writes a feeding_event row with the result.
-  - If food remaining drops below low_food_threshold_grams, the device
-    creates a 'low_food' alert row in the alerts table.
+The backend scheduler (scheduler.py) reads feeding_schedules and fires
+dispense_food MQTT commands at the configured times.
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+import logging
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from utils import login_required, get_supabase_with_session, current_user_id
+
+logger = logging.getLogger(__name__)
 
 feeder_bp = Blueprint("feeder", __name__, url_prefix="/feeder")
 
 
-def _get_owned_feeder(sb, device_id, uid):
-    """
-    Fetch a device, verify it belongs to uid and is an automatic_feeder.
-    Returns (device, error_message).
-    """
+# ── Helpers ───────────────────────────────────────────────────
+
+def _get_owned_feeder(sb, device_id: str, uid: str):
+    """Return (device, error_str). Verifies ownership and device type."""
     try:
         res = (
             sb.table("devices")
@@ -65,32 +46,62 @@ def _get_owned_feeder(sb, device_id, uid):
     return device, None
 
 
-def _load_config_and_schedules(sb, device_id):
-    """Return (config_or_None, schedules_list)."""
-    cfg_res = (
-        sb.table("feeder_configurations")
-        .select("*")
-        .eq("device_id", device_id)
-        .execute()
-    )
-    config = cfg_res.data[0] if cfg_res.data else None
+def _get_or_create_config(sb, device_id: str) -> dict | None:
+    """
+    Return the feeder_configurations row, creating one with defaults if absent.
+    Returns None on error.
+    """
+    try:
+        res = sb.table("feeder_configurations").select("*") \
+            .eq("device_id", device_id).execute()
+        if res.data:
+            return res.data[0]
+        # Auto-create with silent defaults — user never sees these values
+        ins = sb.table("feeder_configurations").insert({
+            "device_id":                device_id,
+            "feeding_mode":             "redistribute_daily_diet",
+            "daily_tolerance_grams":    10.0,
+            "low_food_threshold_grams": 100.0,
+        }).execute()
+        return ins.data[0] if ins.data else None
+    except Exception as e:
+        logger.error("FEEDER config get/create failed — device=%s: %s", device_id, e)
+        return None
 
-    schedules = []
-    if config:
-        sched_res = (
-            sb.table("feeding_schedules")
-            .select("*")
-            .eq("feeder_config_id", config["id"])
-            .order("feeding_time")
+
+def _load_schedule_pair(sb, config_id: str) -> tuple:
+    """
+    Return (sched1, sched2, grams, enabled) from the two schedule rows.
+    sched1/sched2 may be None if not yet saved.
+    grams/enabled come from the first row found, or defaults.
+    """
+    try:
+        res = sb.table("feeding_schedules").select("*") \
+            .eq("feeder_config_id", config_id) \
+            .order("feeding_time") \
+            .limit(2) \
             .execute()
-        )
-        schedules = sched_res.data or []
+        rows = res.data or []
+    except Exception as e:
+        logger.error("FEEDER schedule load failed — config=%s: %s", config_id, e)
+        rows = []
 
-    return config, schedules
+    def _norm(row):
+        if not row:
+            return row
+        from scheduler import _to_hhmm
+        row = dict(row)
+        row["feeding_time"] = _to_hhmm(row.get("feeding_time"))
+        return row
+
+    sched1  = _norm(rows[0] if len(rows) > 0 else None)
+    sched2  = _norm(rows[1] if len(rows) > 1 else None)
+    grams   = float((sched1 or {}).get("target_grams") or 0)
+    enabled = bool((sched1 or {}).get("enabled", True))
+    return sched1, sched2, grams, enabled
 
 
 # ── Routes ────────────────────────────────────────────────────
-
 
 @feeder_bp.route("/<device_id>", methods=["GET", "POST"])
 @login_required
@@ -103,168 +114,133 @@ def settings(device_id):
         flash(err, "error")
         return redirect(url_for("devices.index"))
 
-    config, schedules = _load_config_and_schedules(sb, device_id)
+    config = _get_or_create_config(sb, device_id)
+    if not config:
+        flash("Could not load feeder configuration.", "error")
+        return redirect(url_for("devices.index"))
+
+    sched1, sched2, grams, enabled = _load_schedule_pair(sb, config["id"])
 
     if request.method == "POST":
-        action = request.form.get("action", "")
-
-        # ── Save diet mode + thresholds ──────────────────────
-        if action == "save_config":
-            feeding_mode  = request.form.get("feeding_mode", "redistribute_daily_diet")
-            if feeding_mode not in ("complete_bowl", "redistribute_daily_diet"):
-                flash("Invalid feeding mode.", "error")
-                return redirect(url_for("feeder.settings", device_id=device_id))
-
-            try:
-                tolerance  = float(request.form.get("daily_tolerance_grams", 10))
-                threshold  = float(request.form.get("low_food_threshold_grams", 100))
-            except ValueError:
-                flash("Tolerance and threshold must be numbers.", "error")
-                return redirect(url_for("feeder.settings", device_id=device_id))
-
-            if tolerance < 0 or threshold < 0:
-                flash("Values cannot be negative.", "error")
-                return redirect(url_for("feeder.settings", device_id=device_id))
-
-            payload = {
-                "device_id":                 device_id,
-                "feeding_mode":              feeding_mode,
-                "daily_tolerance_grams":     tolerance,
-                "low_food_threshold_grams":  threshold,
-            }
-            try:
-                if config:
-                    sb.table("feeder_configurations").update(payload).eq("id", config["id"]).execute()
-                else:
-                    sb.table("feeder_configurations").insert(payload).execute()
-                flash("Feeder configuration saved.", "success")
-            except Exception as e:
-                flash(f"Error saving configuration: {e}", "error")
+        # Parse form
+        raw_time1 = request.form.get("feeding_time_1", "").strip()
+        raw_time2 = request.form.get("feeding_time_2", "").strip()
+        new_enabled = request.form.get("enabled") == "on"
+        try:
+            new_grams = float(request.form.get("grams", 0))
+        except ValueError:
+            flash("Grams must be a number.", "error")
             return redirect(url_for("feeder.settings", device_id=device_id))
 
-        # ── Add new schedule ─────────────────────────────────
-        if action == "add_schedule":
-            if not config:
-                flash("Save diet configuration first before adding schedules.", "warning")
-                return redirect(url_for("feeder.settings", device_id=device_id))
-
-            feeding_time = request.form.get("feeding_time", "").strip()
-            enabled      = request.form.get("enabled") == "on"
-
-            try:
-                target_grams = float(request.form.get("target_grams", 0))
-            except ValueError:
-                flash("Target grams must be a number.", "error")
-                return redirect(url_for("feeder.settings", device_id=device_id))
-
-            if not feeding_time:
-                flash("Feeding time is required.", "error")
-                return redirect(url_for("feeder.settings", device_id=device_id))
-            if target_grams <= 0:
-                flash("Target grams must be greater than zero.", "error")
-                return redirect(url_for("feeder.settings", device_id=device_id))
-
-            try:
-                sb.table("feeding_schedules").insert({
-                    "feeder_config_id": config["id"],
-                    "feeding_time":     feeding_time,
-                    "target_grams":     target_grams,
-                    "enabled":          enabled,
-                }).execute()
-                flash("Feeding schedule added.", "success")
-            except Exception as e:
-                flash(f"Error adding schedule: {e}", "error")
+        if not raw_time1 and not raw_time2:
+            flash("Set at least one feeding time.", "error")
             return redirect(url_for("feeder.settings", device_id=device_id))
+        if new_grams <= 0:
+            flash("Grams must be greater than zero.", "error")
+            return redirect(url_for("feeder.settings", device_id=device_id))
+
+        # Delete all existing schedule rows for this config, then re-insert
+        try:
+            sb.table("feeding_schedules").delete() \
+                .eq("feeder_config_id", config["id"]).execute()
+        except Exception as e:
+            logger.error("FEEDER schedule delete failed — config=%s: %s", config["id"], e)
+            flash("Could not update schedule.", "error")
+            return redirect(url_for("feeder.settings", device_id=device_id))
+
+        rows_to_insert = []
+        if raw_time1:
+            rows_to_insert.append({
+                "feeder_config_id": config["id"],
+                "feeding_time":     raw_time1,
+                "target_grams":     new_grams,
+                "enabled":          new_enabled,
+            })
+        if raw_time2:
+            rows_to_insert.append({
+                "feeder_config_id": config["id"],
+                "feeding_time":     raw_time2,
+                "target_grams":     new_grams,
+                "enabled":          new_enabled,
+            })
+
+        try:
+            if rows_to_insert:
+                sb.table("feeding_schedules").insert(rows_to_insert).execute()
+            logger.info("FEEDER schedule saved — device=%s times=[%s,%s] grams=%.1f enabled=%s",
+                        device_id, raw_time1, raw_time2, new_grams, new_enabled)
+            flash("Feeding schedule saved.", "success")
+        except Exception as e:
+            logger.error("FEEDER schedule insert failed — device=%s: %s", device_id, e)
+            flash("Could not save feeding schedule.", "error")
+
+        return redirect(url_for("feeder.settings", device_id=device_id))
+
+    import scheduler as sched_mod
+    sched_status = sched_mod.get_status()
 
     return render_template(
         "feeder_settings.html",
-        device    = device,
-        config    = config,
-        schedules = schedules,
+        device       = device,
+        sched1       = sched1,
+        sched2       = sched2,
+        grams        = grams,
+        enabled      = enabled,
+        sched_status = sched_status,
     )
 
 
-@feeder_bp.route("/<device_id>/schedule/<sched_id>/edit", methods=["GET", "POST"])
+@feeder_bp.route("/<device_id>/test-feeding", methods=["POST"])
 @login_required
-def edit_schedule(device_id, sched_id):
-    """Edit an existing feeding schedule entry."""
+def test_feeding(device_id):
+    """Test button: fire a scheduled dispense_food immediately."""
+    import scheduler as sched_mod
+
     sb  = get_supabase_with_session()
     uid = current_user_id()
 
     device, err = _get_owned_feeder(sb, device_id, uid)
     if err:
-        flash(err, "error")
-        return redirect(url_for("devices.index"))
+        return jsonify({"ok": False, "error": err}), 403
 
-    # Fetch the schedule row
-    try:
-        sres = sb.table("feeding_schedules").select("*").eq("id", sched_id).single().execute()
-        schedule = sres.data
-    except Exception:
-        schedule = None
-
-    if not schedule:
-        flash("Schedule not found.", "error")
+    config = _get_or_create_config(sb, device_id)
+    if not config:
+        flash("Could not load feeder configuration.", "error")
         return redirect(url_for("feeder.settings", device_id=device_id))
 
-    if request.method == "POST":
-        feeding_time = request.form.get("feeding_time", "").strip()
-        enabled      = request.form.get("enabled") == "on"
-        try:
-            target_grams = float(request.form.get("target_grams", 0))
-        except ValueError:
-            flash("Target grams must be a number.", "error")
-            return render_template("schedule_edit.html", device=device, schedule=schedule)
+    _, _, grams, _ = _load_schedule_pair(sb, config["id"])
+    if grams <= 0:
+        flash("Set a grams value and save the schedule first.", "error")
+        return redirect(url_for("feeder.settings", device_id=device_id))
 
-        if not feeding_time or target_grams <= 0:
-            flash("Please provide a valid time and grams > 0.", "error")
-            return render_template("schedule_edit.html", device=device, schedule=schedule)
+    serial   = device.get("serial_number", "")
+    owner_id = device.get("owner_id", "")
 
-        try:
-            sb.table("feeding_schedules").update({
-                "feeding_time": feeding_time,
-                "target_grams": target_grams,
-                "enabled":      enabled,
-            }).eq("id", sched_id).execute()
-            flash("Schedule updated.", "success")
-            return redirect(url_for("feeder.settings", device_id=device_id))
-        except Exception as e:
-            flash(f"Error updating schedule: {e}", "error")
+    success = sched_mod.execute_feeder(device_id, serial, owner_id, grams)
+    if success:
+        flash(f"Test feeding command sent to {serial} ({grams:.0f} g). Check your device and alerts.", "success")
+    else:
+        flash("Test feeding failed — MQTT not connected. Is the backend running?", "error")
 
-    return render_template("schedule_edit.html", device=device, schedule=schedule)
+    return redirect(url_for("feeder.settings", device_id=device_id))
+
+
+# ── Legacy route stubs (redirect to settings) ─────────────────
+# Kept so any cached bookmarks don't produce 404s.
+
+@feeder_bp.route("/<device_id>/schedule/<sched_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_schedule(device_id, sched_id):
+    return redirect(url_for("feeder.settings", device_id=device_id))
 
 
 @feeder_bp.route("/<device_id>/schedule/<sched_id>/delete", methods=["POST"])
 @login_required
 def delete_schedule(device_id, sched_id):
-    sb  = get_supabase_with_session()
-    uid = current_user_id()
-    device, err = _get_owned_feeder(sb, device_id, uid)
-    if err:
-        flash(err, "error")
-        return redirect(url_for("devices.index"))
-    try:
-        sb.table("feeding_schedules").delete().eq("id", sched_id).execute()
-        flash("Schedule removed.", "success")
-    except Exception as e:
-        flash(f"Error removing schedule: {e}", "error")
     return redirect(url_for("feeder.settings", device_id=device_id))
 
 
 @feeder_bp.route("/<device_id>/schedule/<sched_id>/toggle", methods=["POST"])
 @login_required
 def toggle_schedule(device_id, sched_id):
-    sb  = get_supabase_with_session()
-    uid = current_user_id()
-    device, err = _get_owned_feeder(sb, device_id, uid)
-    if err:
-        flash(err, "error")
-        return redirect(url_for("devices.index"))
-    try:
-        res = sb.table("feeding_schedules").select("enabled").eq("id", sched_id).single().execute()
-        if res.data:
-            sb.table("feeding_schedules").update({"enabled": not res.data["enabled"]}).eq("id", sched_id).execute()
-            flash("Schedule toggled.", "success")
-    except Exception as e:
-        flash(f"Error toggling schedule: {e}", "error")
     return redirect(url_for("feeder.settings", device_id=device_id))

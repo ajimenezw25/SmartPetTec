@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Door Schedule — {{ device.device_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>🚪 Door Schedule</h1>
+    <p class="page-subtitle">
+      {{ device.device_name }} &mdash; <code>{{ device.serial_number }}</code>
+    </p>
+  </div>
+  <a href="{{ url_for('devices.detail', device_id=device.id) }}" class="btn btn-outline">← Back to Device</a>
+</div>
+
+<div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1rem;font-size:.85rem;color:#555;flex-wrap:wrap;">
+  <span>🕐 App local time: <strong id="local-clock">—</strong></span>
+  <span>
+    Scheduler status:
+    {% if sched_status and sched_status.running %}
+      <span style="color:#16a34a;font-weight:600;">● running</span>
+    {% else %}
+      <span style="color:#dc2626;font-weight:600;">● stopped</span>
+    {% endif %}
+    {% if sched_status and sched_status.last_check %}
+      <span style="color:#888;">(last check: {{ sched_status.last_check }})</span>
+    {% endif %}
+  </span>
+</div>
+<script>
+  function _tickClock() {
+    var d = new Date();
+    var pad = function(n){ return n < 10 ? '0'+n : n; };
+    document.getElementById('local-clock').textContent =
+      pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+  }
+  _tickClock();
+  setInterval(_tickClock, 1000);
+</script>
+
+{% if table_missing %}
+<div class="flash flash-error">
+  <strong>Setup required:</strong> The <code>door_schedules</code> table does not exist yet in Supabase.
+  Run the migration SQL in your Supabase SQL Editor before using this feature.
+  See <code>docs/door_schedules_migration.sql</code>.
+</div>
+{% else %}
+
+{# ── How it works ── #}
+<div class="form-card" style="margin-bottom:1.25rem;">
+  <h2>⏰ App-Managed Schedule</h2>
+  <p class="text-muted">
+    The SmartPetHome backend checks this schedule every 10 seconds and sends
+    <strong>open_door</strong> / <strong>close_door</strong> MQTT commands at the
+    configured times. The ESP32 does not manage time internally.
+  </p>
+  <ul class="text-muted" style="margin:.5rem 0 0 1.2rem;line-height:1.8;">
+    <li>Each action fires once per day at the specified time.</li>
+    <li>Leave a time blank to skip that action.</li>
+    <li>Disable the schedule to pause both actions without deleting it.</li>
+    <li>Each execution creates an alert and Telegram notification.</li>
+  </ul>
+</div>
+
+{# ── Schedule form ── #}
+<div class="form-card">
+  <h2>🗓️ {{ 'Edit Schedule' if door_sched else 'Create Schedule' }}</h2>
+
+  <form method="POST" action="{{ url_for('door.schedule', device_id=device.id) }}">
+    <input type="hidden" name="action" value="save_schedule" />
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="open_time">Open Time</label>
+        <input type="time" id="open_time" name="open_time"
+               value="{{ door_sched.open_time[:5] if door_sched and door_sched.open_time else '' }}" />
+        <small>Leave blank to skip automatic open.</small>
+      </div>
+      <div class="form-group">
+        <label for="close_time">Close Time</label>
+        <input type="time" id="close_time" name="close_time"
+               value="{{ door_sched.close_time[:5] if door_sched and door_sched.close_time else '' }}" />
+        <small>Leave blank to skip automatic close.</small>
+      </div>
+      <div class="form-group form-group--checkbox" style="justify-content:center;padding-top:1.5rem;">
+        <label>
+          <input type="checkbox" name="enabled"
+                 {{ 'checked' if not door_sched or door_sched.enabled }} />
+          Enabled
+        </label>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">
+        {{ 'Update Schedule' if door_sched else 'Save Schedule' }}
+      </button>
+    </div>
+  </form>
+</div>
+
+{# ── Current schedule summary ── #}
+{# ── Test buttons ── #}
+<div class="form-card">
+  <h2>🧪 Test Scheduled Actions</h2>
+  <p class="text-muted" style="margin-bottom:1rem;">
+    Send a command immediately — same as the scheduler would send at the scheduled time.
+    MQTT must be connected and the device must be online.
+  </p>
+  <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+    <form method="POST" action="{{ url_for('door.test_action', device_id=device.id) }}">
+      <input type="hidden" name="action_type" value="open_door" />
+      <button type="submit" class="btn btn-outline"
+              onclick="return confirm('Send open_door now?');">
+        🟢 Test Scheduled Open Now
+      </button>
+    </form>
+    <form method="POST" action="{{ url_for('door.test_action', device_id=device.id) }}">
+      <input type="hidden" name="action_type" value="close_door" />
+      <button type="submit" class="btn btn-outline"
+              onclick="return confirm('Send close_door now?');">
+        🔴 Test Scheduled Close Now
+      </button>
+    </form>
+  </div>
+</div>
+
+{% if door_sched %}
+<div class="form-card">
+  <h2>📋 Current Schedule</h2>
+  <dl class="info-list">
+    <dt>Open at</dt>
+    <dd>
+      {% if door_sched.open_time %}
+        <strong>{{ door_sched.open_time[:5] }}</strong>
+      {% else %}
+        <span class="text-muted">— not set</span>
+      {% endif %}
+    </dd>
+    <dt>Close at</dt>
+    <dd>
+      {% if door_sched.close_time %}
+        <strong>{{ door_sched.close_time[:5] }}</strong>
+      {% else %}
+        <span class="text-muted">— not set</span>
+      {% endif %}
+    </dd>
+    <dt>Status</dt>
+    <dd>
+      <span class="badge {{ 'badge-green' if door_sched.enabled else 'badge-gray' }}">
+        {{ 'Enabled' if door_sched.enabled else 'Disabled' }}
+      </span>
+    </dd>
+  </dl>
+
+  <form method="POST" action="{{ url_for('door.schedule', device_id=device.id) }}"
+        onsubmit="return confirm('Remove the door schedule?');"
+        style="margin-top:1rem;">
+    <input type="hidden" name="action" value="delete_schedule" />
+    <button type="submit" class="btn btn-sm btn-danger">Remove Schedule</button>
+  </form>
+</div>
+{% endif %}
+
+{% endif %}{# end table_missing #}
+{% endblock %}

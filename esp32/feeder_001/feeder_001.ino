@@ -155,7 +155,7 @@ void handleCommand(const char* payload, unsigned int length) {
   Serial.printf("[CMD] %s\n", command);
 
   if (strcmp(command, "dispense_food") == 0) {
-    compuerta.write(90);
+    compuerta.write(170);
     delay(DISPENSE_MS);
     compuerta.write(0);
     runSensorCycle();          // restore LEDs/servo to sensor state

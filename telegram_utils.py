@@ -117,22 +117,21 @@ def send_telegram_alert(owner_id: str, title: str, message: str, severity: str =
     if not chat_id:
         return False  # Already logged in _resolve_chat_id
 
-    # Format the message
+    # Format the message — plain text to avoid Markdown parse errors
     severity_emoji = {"info": "ℹ️", "warning": "⚠️", "critical": "🚨"}.get(severity, "🔔")
     text = (
-        f"{severity_emoji} *SmartPetHome Alert*\n\n"
-        f"*{title}*\n"
+        f"{severity_emoji} SmartPetHome Alert\n\n"
+        f"{title}\n"
         f"{message}\n\n"
-        f"_Severity: {severity.upper()}_"
+        f"Severity: {severity.upper()}"
     )
 
     try:
         resp = requests.post(
             TELEGRAM_API.format(token=TELEGRAM_BOT_TOKEN),
             json={
-                "chat_id":    chat_id,
-                "text":       text,
-                "parse_mode": "Markdown",
+                "chat_id": chat_id,
+                "text":    text,
             },
             timeout=10,
         )

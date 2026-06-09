@@ -1,31 +1,47 @@
 /* ============================================================
-   SmartPetHome — Sprint 1 Stylesheet
-   Design: Clean utilitarian with warm pet-care accents
+   SmartPetHome — Stylesheet
+   Palette: Navy / Teal / Orange  (matches SmartPetHome logo)
    ============================================================ */
 
 /* ── Variables ───────────────────────────────────────────── */
 :root {
-  --color-bg:           #f7f6f3;
+  /* Background & surface */
+  --color-bg:           #FAF8F2;
   --color-surface:      #ffffff;
-  --color-border:       #e2ddd6;
-  --color-text:         #1a1814;
-  --color-text-muted:   #6b6560;
-  --color-primary:      #2d6a4f;
-  --color-primary-dark: #1b4332;
-  --color-primary-light:#d8f3dc;
-  --color-accent:       #f4a261;
+  --color-border:       #dde8f0;
+
+  /* Text */
+  --color-text:         #12313F;
+  --color-text-muted:   #5a7080;
+
+  /* Brand blues */
+  --color-primary:      #0077B6;
+  --color-primary-dark: #004C7F;
+  --color-primary-light:#ddf0f9;
+
+  /* Teal accent (secondary brand colour) */
+  --color-teal:         #00A6C8;
+  --color-teal-light:   #d6f4f9;
+
+  /* Orange accent */
+  --color-accent:       #F7941D;
+  --color-accent-light: #fff0dc;
+
+  /* Semantic */
   --color-danger:       #c0392b;
   --color-danger-light: #fdecea;
   --color-warning:      #d4a017;
   --color-warning-light:#fef9ec;
-  --color-success:      #2d6a4f;
-  --color-success-light:#d8f3dc;
-  --color-info:         #2980b9;
-  --color-info-light:   #eaf4fb;
+  --color-success:      #1a8a5e;
+  --color-success-light:#d4f4e8;
+  --color-info:         #0077B6;
+  --color-info-light:   #ddf0f9;
+
+  /* Layout */
   --radius:             8px;
   --radius-lg:          12px;
-  --shadow-sm:          0 1px 3px rgba(0,0,0,.08);
-  --shadow-md:          0 4px 12px rgba(0,0,0,.10);
+  --shadow-sm:          0 1px 3px rgba(0,0,0,.07);
+  --shadow-md:          0 4px 14px rgba(0,0,0,.10);
   --font-body:          'Georgia', 'Times New Roman', serif;
   --font-ui:            'Trebuchet MS', 'Helvetica Neue', sans-serif;
   --font-mono:          'Courier New', monospace;
@@ -49,7 +65,7 @@ body {
 }
 
 a { color: var(--color-primary); text-decoration: none; }
-a:hover { text-decoration: underline; }
+a:hover { color: var(--color-primary-dark); text-decoration: underline; }
 
 h1, h2, h3, h4 { font-family: var(--font-ui); font-weight: 700; line-height: 1.25; }
 h1 { font-size: 1.75rem; }
@@ -66,10 +82,42 @@ code {
   border-radius: 3px;
 }
 
+/* ── Brand logo helpers ──────────────────────────────────── */
+.brand-logo {
+  display: inline-block;
+  flex-shrink: 0;
+  object-fit: contain;
+  object-position: center;
+}
+
+/* Navbar — small logo */
+.brand-logo-nav {
+  width:  38px;
+  height: 38px;
+  border-radius: 6px;
+  vertical-align: middle;
+  filter: drop-shadow(0 1px 4px rgba(0,0,0,.35));
+}
+
+/* Login / register page — large logo */
+.brand-logo-login {
+  width: 190px;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto 1.25rem;
+}
+
+/* Brand title text (used alongside the logo) */
+.brand-title {
+  font-weight: 700;
+  letter-spacing: -.01em;
+}
+
 /* ── Navbar ──────────────────────────────────────────────── */
 .navbar {
   height: var(--navbar-h);
-  background: var(--color-primary-dark);
+  background: linear-gradient(135deg, #283593 0%, #3949AB 100%);
   color: #fff;
   display: flex;
   align-items: center;
@@ -78,17 +126,21 @@ code {
   position: sticky;
   top: 0;
   z-index: 200;
-  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  box-shadow: 0 2px 10px rgba(0,0,0,.22);
 }
 
 .navbar-brand {
-  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: #fff;
   white-space: nowrap;
   letter-spacing: -.01em;
 }
 .navbar-brand:hover { text-decoration: none; color: var(--color-accent); }
+.navbar-brand:hover .brand-logo-nav { opacity: .88; }
 
 .navbar-right {
   display: flex;
@@ -181,7 +233,7 @@ code {
 }
 .nav-dropdown-inner a:hover {
   background: var(--color-primary-light);
-  color: var(--color-primary-dark);
+  color: var(--color-primary);
   text-decoration: none;
 }
 .nav-dropdown-divider {
@@ -214,10 +266,10 @@ code {
   font-size: .9rem;
   border-left: 4px solid;
 }
-.flash-success { background: var(--color-success-light); border-color: var(--color-success); color: var(--color-primary-dark); }
-.flash-error   { background: var(--color-danger-light);  border-color: var(--color-danger);  color: #7b1e18; }
-.flash-warning { background: var(--color-warning-light); border-color: var(--color-warning); color: #5a3e00; }
-.flash-info    { background: var(--color-info-light);    border-color: var(--color-info);    color: #1a5276; }
+.flash-success { background: var(--color-success-light); border-color: var(--color-success); color: var(--color-success); }
+.flash-error   { background: var(--color-danger-light);  border-color: var(--color-danger);  color: var(--color-danger); }
+.flash-warning { background: var(--color-warning-light); border-color: var(--color-warning); color: var(--color-warning); }
+.flash-info    { background: var(--color-info-light);    border-color: var(--color-info);    color: var(--color-info); }
 
 /* ── Page Header ─────────────────────────────────────────── */
 .page-header {
@@ -402,27 +454,84 @@ code {
   vertical-align: middle;
 }
 .data-table tr:last-child td { border-bottom: none; }
-.data-table tr:hover td { background: #faf9f7; }
+.data-table tr:hover td { background: var(--color-primary-light); }
 .row-muted td { opacity: .6; }
 .row-disabled td { opacity: .5; text-decoration: line-through; }
-.actions-cell { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+
+/* Actions cell — flex container that stays a proper table cell */
+.actions-cell {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: .4rem .85rem;
+  white-space: nowrap;
+}
+/* form inside flex row must behave like a flex item, not an inline box */
+.actions-cell form {
+  display: contents;
+  margin: 0;
+  padding: 0;
+}
+/* Suppress the vertical-shift hover on table action buttons
+   so the row background stays visually aligned */
+.data-table .btn:hover { transform: none; }
 
 /* ── Badges ──────────────────────────────────────────────── */
 .badge {
-  display: inline-block;
-  padding: .2rem .55rem;
-  border-radius: 20px;
-  font-size: .7rem;
+  display: inline-flex;
+  align-items: center;
+  padding: .18rem .55rem;
+  border-radius: 999px;
+  font-size: .75rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: .04em;
+  letter-spacing: .05em;
+  border: 1px solid transparent;
+  line-height: 1.4;
+  white-space: nowrap;
+  vertical-align: middle;
 }
-.badge-green  { background: var(--color-success-light); color: var(--color-primary-dark); }
-.badge-red    { background: var(--color-danger-light);  color: var(--color-danger); }
-.badge-yellow { background: var(--color-warning-light); color: #7a5a00; }
-.badge-gray   { background: #eee; color: #666; }
-.badge-info   { background: var(--color-info-light); color: var(--color-info); }
-.badge-normal { background: var(--color-success-light); color: var(--color-primary-dark); }
+
+/* Light mode badge colors */
+.badge-green   { background: #dcfce7; border-color: #86efac; color: #166534; }
+.badge-red     { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+.badge-yellow  { background: #fef9c3; border-color: #fde047; color: #854d0e; }
+.badge-warning { background: #fef9c3; border-color: #fde047; color: #854d0e; }
+.badge-gray    { background: #f1f5f9; border-color: #cbd5e1; color: #475569; }
+.badge-neutral { background: #f1f5f9; border-color: #cbd5e1; color: #475569; }
+.badge-info    { background: #e0f2fe; border-color: #7dd3fc; color: #0369a1; }
+.badge-normal  { background: #dcfce7; border-color: #86efac; color: #166534; }
+
+/* Dark mode badge colors — semi-transparent so they sit cleanly on dark surfaces */
+[data-theme="dark"] .badge-green,
+[data-theme="dark"] .badge-normal  {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.35);
+  color: #86efac;
+}
+[data-theme="dark"] .badge-red {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+[data-theme="dark"] .badge-yellow,
+[data-theme="dark"] .badge-warning {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #fcd34d;
+}
+[data-theme="dark"] .badge-gray,
+[data-theme="dark"] .badge-neutral {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.25);
+  color: #94a3b8;
+}
+[data-theme="dark"] .badge-info {
+  background: rgba(14, 165, 233, 0.16);
+  border-color: rgba(14, 165, 233, 0.35);
+  color: #7dd3fc;
+}
 
 /* ── Forms ───────────────────────────────────────────────── */
 .form-card {
@@ -458,6 +567,9 @@ input[type="password"],
 input[type="number"],
 input[type="date"],
 input[type="time"],
+input[type="tel"],
+input[type="url"],
+input[type="search"],
 select,
 textarea {
   padding: .55rem .85rem;
@@ -472,8 +584,8 @@ textarea {
 }
 input:focus, select:focus, textarea:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(45,106,79,.15);
+  border-color: var(--color-teal);
+  box-shadow: 0 0 0 3px rgba(0,166,200,.15);
 }
 
 textarea { resize: vertical; min-height: 80px; }
@@ -514,7 +626,7 @@ select { cursor: pointer; }
 
 /* ── Auth Pages ──────────────────────────────────────────── */
 .auth-page {
-  min-height: 100vh;
+  min-height: 60vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -527,13 +639,27 @@ select { cursor: pointer; }
   padding: 2.5rem 2rem;
   width: 100%;
   max-width: 420px;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 6px 28px rgba(0,76,127,.12);
   text-align: center;
 }
-.auth-card h1 { font-size: 1.5rem; margin-bottom: .25rem; }
-.auth-card h2 { font-size: 1.1rem; color: var(--color-text-muted); margin-bottom: 1.5rem; font-weight: 400; }
+.auth-card h1 {
+  font-size: 1.4rem;
+  margin-bottom: .15rem;
+  color: var(--color-primary-dark);
+}
+.auth-card h2 {
+  font-size: 1.05rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1.5rem;
+  font-weight: 400;
+}
 .auth-card .form-group { text-align: left; }
 .auth-switch { margin-top: 1.25rem; font-size: .875rem; color: var(--color-text-muted); }
+
+/* logo fallback: show text header only when logo fails to load */
+.brand-logo-login[data-fallback] { display: none; }
+.auth-logo-fallback { display: none; }
+.auth-logo-fallback--visible { display: block; }
 
 /* ── Alert Cards ─────────────────────────────────────────── */
 .alert-cards { display: flex; flex-direction: column; gap: .75rem; margin-bottom: 1rem; }
@@ -717,10 +843,10 @@ select { cursor: pointer; }
   pointer-events: auto;
 }
 .toast-visible { opacity: 1; transform: translateY(0); }
-.toast-success { background: var(--color-success-light); color: var(--color-primary-dark); border-left: 4px solid var(--color-success); }
-.toast-error   { background: var(--color-danger-light);  color: #7b1e18;               border-left: 4px solid var(--color-danger); }
-.toast-warning { background: var(--color-warning-light); color: #5a3e00;               border-left: 4px solid var(--color-warning); }
-.toast-info    { background: var(--color-info-light);    color: #1a5276;               border-left: 4px solid var(--color-info); }
+.toast-success { background: var(--color-success-light); color: var(--color-success); border-left: 4px solid var(--color-success); }
+.toast-error   { background: var(--color-danger-light);  color: var(--color-danger);  border-left: 4px solid var(--color-danger); }
+.toast-warning { background: var(--color-warning-light); color: var(--color-warning); border-left: 4px solid var(--color-warning); }
+.toast-info    { background: var(--color-info-light);    color: var(--color-info);    border-left: 4px solid var(--color-info); }
 
 /* Device detail / command center */
 .detail-grid {
@@ -792,4 +918,177 @@ select { cursor: pointer; }
 .btn-end-app:disabled {
   opacity: .5;
   cursor: default;
+}
+
+/* ============================================================
+   Dark Mode
+   Applied when <html data-theme="dark">
+   Navbar uses Option 9 (Slate/Charcoal Blue) in dark mode.
+   ============================================================ */
+
+[data-theme="dark"] {
+  --color-bg:           #1c2535;
+  --color-surface:      #243044;
+  --color-border:       #344258;
+  --color-text:         #dde6ef;
+  --color-text-muted:   #7d9aaf;
+  --color-primary:      #7986CB;
+  --color-primary-dark: #5C6BC0;
+  --color-primary-light:#2a3260;
+  --color-teal:         #4DD0E1;
+  --color-teal-light:   #1a3a42;
+  --color-accent:       #F7941D;
+  --color-accent-light: #3a2a10;
+  --color-danger:       #ef5350;
+  --color-danger-light: #3b1515;
+  --color-warning:      #FFB300;
+  --color-warning-light:#332800;
+  --color-success:      #4CAF50;
+  --color-success-light:#1a3020;
+  --color-info:         #64B5F6;
+  --color-info-light:   #1a2d3e;
+}
+
+/* Dark navbar — Option 9 Slate/Charcoal Blue */
+[data-theme="dark"] .navbar {
+  background: linear-gradient(135deg, #37474F 0%, #546E7A 100%);
+  box-shadow: 0 2px 10px rgba(0,0,0,.45);
+}
+
+/* Dark surfaces */
+[data-theme="dark"] body {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+[data-theme="dark"] .section,
+[data-theme="dark"] .form-card,
+[data-theme="dark"] .stat-card,
+[data-theme="dark"] .pet-card,
+[data-theme="dark"] .action-card,
+[data-theme="dark"] .auth-card,
+[data-theme="dark"] .command-card,
+[data-theme="dark"] .alert-card,
+[data-theme="dark"] .nav-dropdown {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .nav-dropdown-inner a {
+  color: var(--color-text);
+}
+[data-theme="dark"] .nav-dropdown-inner a:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+[data-theme="dark"] .data-table th {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+}
+[data-theme="dark"] .data-table td {
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+[data-theme="dark"] .data-table tr:hover td {
+  background: rgba(121, 134, 203, 0.10);
+}
+
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="range"]):not([type="color"]),
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: #243044;
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+[data-theme="dark"] .device-info,
+[data-theme="dark"] .mode-box,
+[data-theme="dark"] .ack-pending,
+[data-theme="dark"] .alert-item,
+[data-theme="dark"] .status-row {
+  background: #1c2535;
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] code { background: #1c2535; color: #64B5F6; }
+
+[data-theme="dark"] .footer {
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .page-header {
+  border-color: var(--color-border);
+}
+
+/* ── Dark mode toggle widget ─────────────────────────────── */
+.theme-toggle-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--color-border);
+  margin-top: 1rem;
+}
+.theme-toggle-label {
+  font-weight: 600;
+  font-size: .95rem;
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+}
+.theme-toggle-label small {
+  font-weight: 400;
+  font-size: .8rem;
+  display: block;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* Toggle switch */
+.toggle-switch {
+  position: relative;
+  width: 52px;
+  height: 28px;
+  flex-shrink: 0;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--color-border);
+  border-radius: 28px;
+  cursor: pointer;
+  transition: background .25s;
+}
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  background: #fff;
+  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  transition: transform .25s;
+  box-shadow: 0 1px 4px rgba(0,0,0,.25);
+}
+.toggle-switch input:checked + .toggle-track {
+  background: var(--color-primary);
+}
+.toggle-switch input:checked + .toggle-track::after {
+  transform: translateX(24px);
 }
