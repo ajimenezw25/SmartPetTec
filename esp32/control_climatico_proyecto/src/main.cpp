@@ -13,8 +13,8 @@
 #define FAN_PIN 25
 
 // Red y broker
-#define WIFI_SSID  "J ARIAS -2.4G"
-#define WIFI_PASS  "Barra3126"
+#define WIFI_SSID  "Familia Jiménez Wilhelm 2.4Ghz"
+#define WIFI_PASS  "Wilhelm25"
 #define MQTT_HOST  "broker.emqx.io"
 #define MQTT_PORT  1883
 

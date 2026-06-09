@@ -154,6 +154,7 @@ if __name__ == "__main__":
         port = 5000
         print()
         print("=" * 44)
+        
         print("  SmartPetTec — running")
         print(f"  Local:  http://127.0.0.1:{port}")
         print(f"  MQTT:   {MQTT_HOST}:{MQTT_PORT}")

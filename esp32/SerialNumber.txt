@@ -1,0 +1,3 @@
+Ventilador: ENV-001
+Feeder: FEEDER-001
+Compuerta: DOOR-001

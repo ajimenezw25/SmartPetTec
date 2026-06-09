@@ -406,11 +406,24 @@ def handle_environmental(device: dict, data: dict) -> None:
     except Exception as e:
         logger.error("environmental_events insert failed: %s", e)
 
-    if status in ("too_low","too_high"):
-        _insert_alert(device_id, owner_id, "temperature_out_of_range", "critical",
-                      "🚨 Temperature Out of Range",
-                      f"Temperature is {temperature}°C on device '{device['device_name']}' "
-                      f"(status: {status}). Automatic control {"activated" if actuator_trig else "not activated"}.")
+    if status in ("too_low", "too_high"):
+        if _has_open_alert(device_id, "temperature_out_of_range"):
+            logger.debug(
+                "ENV duplicate alert skipped — open temperature_out_of_range exists (device=%s status=%s)",
+                device_id, status,
+            )
+        else:
+            actuator_label = "activated" if actuator_trig else "not activated"
+            _insert_alert(
+                device_id, owner_id,
+                alert_type = "temperature_out_of_range",
+                severity   = "critical",
+                title      = "Temperatura fuera de rango",
+                message    = (
+                    f"Temperatura {temperature}C en '{device['device_name']}' "
+                    f"(estado: {status}). Control automatico {actuator_label}."
+                ),
+            )
 
 
 def handle_door(device: dict, data: dict) -> None:
