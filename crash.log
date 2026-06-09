@@ -1,0 +1,18 @@
+
+============================================================
+  SmartPetHome — STARTUP ERROR
+============================================================
+supabase_url is required
+
+Traceback (most recent call last):
+  File "C:\Users\bloodxe\Downloads\SmartPetTec-1.1.1\SmartPetTec-1.1.1\launcher.py", line 90, in <module>
+    from config import FLASK_SECRET_KEY, MQTT_HOST, MQTT_PORT
+  File "C:\Users\bloodxe\Downloads\SmartPetTec-1.1.1\SmartPetTec-1.1.1\config.py", line 41, in <module>
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\bloodxe\Downloads\SmartPetTec-1.1.1\SmartPetTec-1.1.1\.venv\Lib\site-packages\supabase\_sync\client.py", line 299, in create_client
+    return SyncClient(
+           ^^^^^^^^^^^
+  File "C:\Users\bloodxe\Downloads\SmartPetTec-1.1.1\SmartPetTec-1.1.1\.venv\Lib\site-packages\supabase\_sync\client.py", line 51, in __init__
+    raise SupabaseException("supabase_url is required")
+supabase._sync.client.SupabaseException: supabase_url is required

@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Water Dispenser Settings — SmartPetHome{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>💧 Water Dispenser Settings</h1>
+  <a href="{{ url_for('devices.index') }}" class="btn btn-outline">← Back to Devices</a>
+</div>
+
+<div class="device-info" style="margin-bottom:1.25rem;">
+  <p>
+    <strong>{{ device.device_name }}</strong> &mdash;
+    <code>{{ device.serial_number }}</code>
+    {% if device.pets %}
+      &mdash; 🐾 Assigned to <strong>{{ device.pets.name }}</strong>
+    {% elif device.locations %}
+      &mdash; 📍 <strong>{{ device.locations.name }}</strong>
+    {% endif %}
+  </p>
+</div>
+
+{# ── SECTION 1: Refill Counter ── #}
+<div class="form-card">
+  <h2>🔄 Refill Counter</h2>
+  <p class="text-muted">
+    The device has a maximum of <strong>{{ config.max_refills if config else max_refills }}</strong> refills per tank.
+    Each time the servo opens and closes to refill water, the counter decreases by one.
+    When it reaches 0 the valve is locked and a critical alert is sent.
+  </p>
+
+  <div class="stats-grid" style="margin:1rem 0;">
+    <div class="stat-card">
+      <div class="stat-icon">💧</div>
+      <div class="stat-number{% if config and config.refills_remaining == 0 %} text-danger{% elif config and config.refills_remaining == 1 %} text-warning{% endif %}">
+        {{ config.refills_remaining if config else max_refills }}
+      </div>
+      <div class="stat-label">Refills Remaining</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🔢</div>
+      <div class="stat-number">{{ config.max_refills if config else max_refills }}</div>
+      <div class="stat-label">Max Refills</div>
+    </div>
+  </div>
+
+  {% if config and config.refills_remaining == 0 %}
+    <div class="info-banner" style="background:var(--color-danger-bg,#fff0f0);border-color:var(--color-danger);margin-bottom:1rem;">
+      🚨 <strong>Valve locked.</strong> Refills exhausted. Reset the counter after refilling the tank.
+    </div>
+  {% elif config and config.refills_remaining == 1 %}
+    <div class="info-banner" style="background:#fffbe6;border-color:var(--color-warning);margin-bottom:1rem;">
+      ⚠️ <strong>Last refill available.</strong> Refill the tank soon.
+    </div>
+  {% endif %}
+
+  <form method="POST" action="{{ url_for('water.reset_refills', device_id=device.id) }}"
+        onsubmit="return confirm('Reset the refill counter to {{ config.max_refills if config else max_refills }}? Only do this after physically refilling the tank.');">
+    <button type="submit" class="btn btn-primary">↺ Reset Refill Counter</button>
+    <small class="text-muted" style="margin-left:.75rem;">
+      Resets to {{ config.max_refills if config else max_refills }}. Only press after physically refilling the tank.
+    </small>
+  </form>
+</div>
+
+{# ── SECTION 2: Sensor Configuration ── #}
+<div class="form-card">
+  <h2>📡 Sensor Configuration</h2>
+  <p class="text-muted">
+    Calibrate the ultrasonic sensor distances for your specific water container.
+    Measure with the Serial Monitor on the ESP32 and enter the values below.
+    After saving, use <strong>Sync Config</strong> from the device command panel to push settings to the ESP32.
+  </p>
+
+  <div class="mode-explainer" style="margin-bottom:1.25rem;">
+    <div class="mode-box">
+      <strong>dist_full_cm</strong>
+      <p>Distance (cm) the sensor reads when the container is <strong>FULL</strong>.
+         Water is close to the sensor → small value (e.g. 3 cm).</p>
+    </div>
+    <div class="mode-box">
+      <strong>dist_empty_cm</strong>
+      <p>Distance (cm) the sensor reads when the container is <strong>EMPTY</strong>.
+         Water is far from the sensor → large value (e.g. 20 cm).</p>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('water.settings', device_id=device.id) }}">
+    <input type="hidden" name="action" value="save_config" />
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="dist_full_cm">Distance when FULL (cm) <span class="required">*</span></label>
+        <input type="number" id="dist_full_cm" name="dist_full_cm"
+               step="0.1" min="0.5" max="50" required
+               value="{{ config.dist_full_cm if config else dist_full_default }}" />
+        <small>Sensor reading when the container is completely full.</small>
+      </div>
+      <div class="form-group">
+        <label for="dist_empty_cm">Distance when EMPTY (cm) <span class="required">*</span></label>
+        <input type="number" id="dist_empty_cm" name="dist_empty_cm"
+               step="0.1" min="1" max="200" required
+               value="{{ config.dist_empty_cm if config else dist_empty_default }}" />
+        <small>Sensor reading when the container is completely empty.</small>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="low_threshold_pct">Low water threshold (%)</label>
+        <input type="number" id="low_threshold_pct" name="low_threshold_pct"
+               step="1" min="5" max="90"
+               value="{{ config.low_threshold_pct if config else low_thr_default }}" />
+        <small>Refill starts when level drops below this %. (default {{ low_thr_default }}%)</small>
+      </div>
+      <div class="form-group">
+        <label for="high_threshold_pct">High water threshold (%)</label>
+        <input type="number" id="high_threshold_pct" name="high_threshold_pct"
+               step="1" min="10" max="100"
+               value="{{ config.high_threshold_pct if config else high_thr_default }}" />
+        <small>Refill stops when level reaches this %. (default {{ high_thr_default }}%)</small>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save Configuration</button>
+      <a href="{{ url_for('devices.detail', device_id=device.id) }}" class="btn btn-outline">
+        Go to Command Panel →
+      </a>
+    </div>
+  </form>
+</div>
+
+{# ── SECTION 3: How it works ── #}
+<div class="form-card">
+  <h2>ℹ️ How it works</h2>
+  <dl class="info-list">
+    <dt>Refill cycle</dt>
+    <dd>When the water level drops below the low threshold, the servo opens for <strong>2 seconds</strong> then closes automatically. Each complete open→close cycle counts as one refill.</dd>
+    <dt>Counter alerts</dt>
+    <dd>At <strong>1 refill remaining</strong>: warning notification. At <strong>0 refills</strong>: critical alert and the valve is locked until you press Reset above.</dd>
+    <dt>Sensor config sync</dt>
+    <dd>After saving, go to the device Command Panel and click <strong>Sync Config</strong> to push the distance calibration to the ESP32 over MQTT.</dd>
+    <dt>Manual refill</dt>
+    <dd>Use <strong>Refill Now</strong> in the Command Panel to trigger an immediate refill cycle (also decrements the counter).</dd>
+  </dl>
+</div>
+{% endblock %}

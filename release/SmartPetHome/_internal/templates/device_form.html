@@ -34,16 +34,14 @@
 
     <div class="form-row">
       <div class="form-group">
-        <label for="pet_id" id="pet_id_label">
-          Assign to Pet <span class="optional" id="pet_required_marker">(optional)</span>
-        </label>
+        <label for="pet_id">Assign to Pet <span class="optional">(optional)</span></label>
         <select id="pet_id" name="pet_id">
           <option value="">— None —</option>
           {% for pet in pets %}
             <option value="{{ pet.id }}">{{ pet.name }}</option>
           {% endfor %}
         </select>
-        <small id="pet_id_hint">Required for Automatic Feeder.</small>
+        <small>Required for Automatic Feeder.</small>
       </div>
 
       <div class="form-group">
@@ -63,36 +61,4 @@
     </div>
   </form>
 </div>
-
-<script>
-(function () {
-  var typeSelect = document.getElementById("device_type_id");
-  var petSelect  = document.getElementById("pet_id");
-  var marker     = document.getElementById("pet_required_marker");
-  var hint       = document.getElementById("pet_id_hint");
-
-  function updatePetField() {
-    var opt    = typeSelect.options[typeSelect.selectedIndex];
-    var text   = opt ? opt.text.toLowerCase() : "";
-    var isFeeder = text.indexOf("feeder") !== -1;
-
-    if (isFeeder) {
-      petSelect.setAttribute("required", "required");
-      marker.textContent = "(required)";
-      marker.className   = "required";
-      hint.textContent   = "A pet must be assigned for Automatic Feeder devices.";
-    } else {
-      petSelect.removeAttribute("required");
-      marker.textContent = "(optional)";
-      marker.className   = "optional";
-      hint.textContent   = "Required for Automatic Feeder.";
-    }
-  }
-
-  if (typeSelect) {
-    typeSelect.addEventListener("change", updatePetField);
-    updatePetField();
-  }
-})();
-</script>
 {% endblock %}

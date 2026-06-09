@@ -301,6 +301,43 @@ def get_telemetry():
         except Exception as e:
             logger.error("Telemetry fetch failed (feeding_events): %s", e)
 
+    # -- water_dispenser -> water_events --
+    if not filter_device_type or filter_device_type == "water_dispenser":
+        try:
+            q = (sb.table("water_events")
+                 .select("created_at, water_level_before, water_level_after, "
+                         "refill_triggered, supply_failure, metadata, "
+                         "devices(id, device_name, serial_number, device_types(slug, name))")
+                 .eq("owner_id", uid)
+                 .order("created_at", desc=True)
+                 .limit(limit))
+            if filter_device_id:
+                q = q.eq("device_id", filter_device_id)
+            res = q.execute()
+            for r in (res.data or []):
+                dev = r.pop("devices", {}) or {}
+                dt  = dev.pop("device_types", {}) or {}
+                meta = r.get("metadata") or {}
+                rows.append({
+                    "created_at":         r.get("created_at"),
+                    "device_name":        dev.get("device_name", "-"),
+                    "serial_number":      dev.get("serial_number", "-"),
+                    "device_id":          dev.get("id", ""),
+                    "device_type_slug":   dt.get("slug", "water_dispenser"),
+                    "device_type_name":   dt.get("name", "Water Dispenser"),
+                    "status_color":       "red" if r.get("supply_failure") else
+                                          "yellow" if (meta.get("event") == "level_low") else "green",
+                    "event_type":         meta.get("event"),
+                    "water_level":        meta.get("water_level"),
+                    "water_level_before": r.get("water_level_before"),
+                    "water_level_after":  r.get("water_level_after"),
+                    "refill_triggered":   r.get("refill_triggered"),
+                    "supply_failure":     r.get("supply_failure"),
+                    "valve_state":        meta.get("valve_state"),
+                })
+        except Exception as e:
+            logger.error("Telemetry fetch failed (water_events): %s", e)
+
     # Sort combined rows newest-first and trim to limit
     rows.sort(key=lambda r: r.get("created_at") or "", reverse=True)
     return ok(rows[:limit])
@@ -662,3 +699,61 @@ def create_location():
         "notes":    body.get("notes") or None,
     }).execute()
     return ok(res.data[0] if res.data else {})
+
+
+# ── Water Dispenser ───────────────────────────────────────────
+
+@api_bp.route("/water/<device_id>/config", methods=["GET"])
+@api_auth
+def get_water_config(device_id):
+    """
+    Called by the ESP32 on boot (via sync_config command response or HTTP poll).
+    Returns sensor calibration + refills_remaining.
+    """
+    sb  = get_supabase_with_session()
+    uid = current_user_id()
+    try:
+        d = sb.table("devices").select("id").eq("id", device_id).eq("owner_id", uid).single().execute()
+        if not d.data:
+            return err("Device not found", 404)
+    except Exception:
+        return err("Device not found", 404)
+
+    res = sb.table("water_configurations").select("*").eq("device_id", device_id).execute()
+    cfg = res.data[0] if res.data else {}
+    return ok({
+        "dist_full_cm":       cfg.get("dist_full_cm",       3.0),
+        "dist_empty_cm":      cfg.get("dist_empty_cm",      20.0),
+        "low_threshold_pct":  cfg.get("low_threshold_pct",  25),
+        "high_threshold_pct": cfg.get("high_threshold_pct", 80),
+        "max_refills":        cfg.get("max_refills",         3),
+        "refills_remaining":  cfg.get("refills_remaining",   3),
+    })
+
+
+@api_bp.route("/water/<device_id>/refills", methods=["PATCH"])
+@api_auth
+def update_refills(device_id):
+    """
+    Called by telemetry_handlers when a refill cycle completes —
+    decrements refills_remaining in water_configurations.
+    Returns the updated count.
+    """
+    sb  = get_supabase_with_session()
+    uid = current_user_id()
+    try:
+        d = sb.table("devices").select("id").eq("id", device_id).eq("owner_id", uid).single().execute()
+        if not d.data:
+            return err("Device not found", 404)
+    except Exception:
+        return err("Device not found", 404)
+
+    res = sb.table("water_configurations").select("*").eq("device_id", device_id).execute()
+    if not res.data:
+        return err("No water configuration found. Configure the device first.")
+
+    cfg = res.data[0]
+    current = cfg.get("refills_remaining", 0)
+    new_val = max(0, current - 1)
+    sb.table("water_configurations").update({"refills_remaining": new_val}).eq("id", cfg["id"]).execute()
+    return ok({"refills_remaining": new_val, "max_refills": cfg.get("max_refills", 3)})

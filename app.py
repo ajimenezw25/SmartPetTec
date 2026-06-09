@@ -44,6 +44,7 @@ from dashboard import dashboard_bp
 from pets import pets_bp
 from devices import devices_bp
 from feeder import feeder_bp
+from water_dispenser import water_bp
 from alerts import alerts_bp
 from history import history_bp
 import importlib
@@ -67,6 +68,7 @@ app.register_blueprint(dashboard_bp)
 app.register_blueprint(pets_bp)
 app.register_blueprint(devices_bp)
 app.register_blueprint(feeder_bp)
+app.register_blueprint(water_bp)
 app.register_blueprint(alerts_bp)
 app.register_blueprint(history_bp)
 app.register_blueprint(profile_bp)
@@ -154,7 +156,6 @@ if __name__ == "__main__":
         port = 5000
         print()
         print("=" * 44)
-        
         print("  SmartPetTec — running")
         print(f"  Local:  http://127.0.0.1:{port}")
         print(f"  MQTT:   {MQTT_HOST}:{MQTT_PORT}")

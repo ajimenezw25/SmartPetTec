@@ -17,9 +17,7 @@ command acknowledgements can be polled via /api/devices/<id>/ack/<cmd_id>.
 
 import json
 import logging
-import random
 import ssl
-import string
 import threading
 
 import paho.mqtt.client as mqtt
@@ -112,23 +110,12 @@ def _on_message(client, userdata, msg):
 # ── Connection setup ──────────────────────────────────────────
 
 def _build_client() -> mqtt.Client:
-    # Append a short random suffix so every Flask session gets a unique client ID.
-    # The public EMQX broker bans connections that reuse an ID that is still
-    # considered active from a previous session.
-    _suffix = "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
-    _client_id = f"{MQTT_CLIENT_ID}-{_suffix}"
-    logger.info("MQTT client ID: %s", _client_id)
-
     client = mqtt.Client(
-        client_id            = _client_id,
-        protocol             = mqtt.MQTTv5,
+        client_id        = MQTT_CLIENT_ID,
+        protocol         = mqtt.MQTTv5,
         callback_api_version = mqtt.CallbackAPIVersion.VERSION2,
     )
     client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
-
-    # Exponential backoff on reconnect: start at 2 s, cap at 60 s.
-    # Prevents rapid-reconnect loops that trigger EMQX rate-limits / bans.
-    client.reconnect_delay_set(min_delay=2, max_delay=60)
 
     if MQTT_TLS:
         tls_ctx = ssl.create_default_context()

@@ -68,6 +68,12 @@
           ⚙️ Feeder Configuration
         </a>
       {% endif %}
+      {% if device.device_types and device.device_types.slug == 'water_dispenser' %}
+        <a href="{{ url_for('water.settings', device_id=device.id) }}"
+           class="btn btn-outline" style="margin-top:.75rem;display:inline-block;">
+          💧 Water Dispenser Settings
+        </a>
+      {% endif %}
       <a href="{{ url_for('telemetry.index') }}"
          class="btn btn-outline" style="margin-top:.5rem;display:inline-block;">
         📡 View Telemetry

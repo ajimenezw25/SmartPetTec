@@ -44,16 +44,18 @@ DEVICE_COMMANDS: dict[str, list[dict]] = {
         {"command": "get_status",      "label": "Refresh Status",            "params": []},
     ],
     "water_dispenser": [
-        {"command": "refill_now",   "label": "Refill Now",   "params": []},
-        {"command": "open_valve",   "label": "Open Valve",   "params": []},
-        {"command": "close_valve",  "label": "Close Valve",  "params": []},
+        {"command": "refill_now",      "label": "Refill Now",           "params": []},
+        {"command": "open_valve",      "label": "Open Valve",           "params": []},
+        {"command": "close_valve",     "label": "Close Valve",          "params": []},
         {
             "command": "set_auto_refill",
             "label":   "Set Auto-Refill",
             "params":  [{"name": "enabled", "type": "select",
                          "options": ["true", "false"], "label": "Enabled", "required": True}],
         },
-        {"command": "get_status", "label": "Refresh Status", "params": []},
+        {"command": "sync_config",     "label": "Sync Config",          "params": []},
+        {"command": "reset_refills",   "label": "Reset Refill Counter", "params": []},
+        {"command": "get_status",      "label": "Refresh Status",       "params": []},
     ],
     "motion_monitoring_network": [
         {

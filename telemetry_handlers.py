@@ -122,6 +122,7 @@ def _insert_alert(device_id: str, owner_id: str, alert_type: str,
 # inserted on transitions, not on every 1-second telemetry packet.
 # Resets to None on Flask restart (first packet re-initialises it).
 _feeder_last_state: dict[str, str] = {}
+_water_last_state:  dict[str, str] = {}   # device_id → "low" | "ok"
 
 
 # ── Per-device-type handlers ──────────────────────────────────
@@ -249,42 +250,123 @@ def handle_feeder(device: dict, data: dict) -> None:
 
 
 def handle_water(device: dict, data: dict) -> None:
-    """water_dispenser telemetry → water_events."""
+    """water_dispenser telemetry → water_events.
+
+    State-machine approach (mirrors handle_feeder):
+      ok  → low        : insert event row + fire low_water alert
+      low → ok         : insert event row (level restored), auto-resolve alert
+      low → low (same) : skip DB write — no spam
+      ok  → ok  (same) : skip DB write
+
+    supply_failure is always recorded when True (rare edge-case event).
+    """
     owner_id  = device["owner_id"]
     device_id = device["id"]
 
-    level_before  = data.get("water_level_before")
-    level_after   = data.get("water_level_after")
-    refill        = bool(data.get("refill_triggered", False))
-    supply_fail   = bool(data.get("supply_failure", False))
+    level_before = data.get("water_level_before")
+    level_after  = data.get("water_level_after")
+    refill       = bool(data.get("refill_triggered", False))
+    supply_fail  = bool(data.get("supply_failure",   False))
+    low_water    = bool(data.get("low_water",         False))
 
-    try:
-        supabase_admin.table("water_events").insert({
-            "device_id":         device_id,
-            "owner_id":          owner_id,
-            "water_level_before": level_before,
-            "water_level_after":  level_after,
-            "refill_triggered":   refill,
-            "supply_failure":     supply_fail,
-            "metadata": {
-                "water_level": data.get("water_level"),
-                "valve_state": data.get("valve_state"),
-                "raw": data,
-            },
-        }).execute()
-    except Exception as e:
-        logger.error("water_events insert failed: %s", e)
+    current_state = "low" if low_water else "ok"
+    prev_state    = _water_last_state.get(device_id)   # None on first packet
+    _water_last_state[device_id] = current_state
 
-    if data.get("low_water"):
-        _insert_alert(device_id, owner_id, "low_water", "warning",
-                      "⚠️ Low Water Level",
-                      f"Water level is low on device '{device['device_name']}'.")
+    state_changed = (prev_state != current_state)
+
+    # ── DB write: only on state change OR supply failure ──────────
+    if state_changed or supply_fail:
+        try:
+            supabase_admin.table("water_events").insert({
+                "device_id":          device_id,
+                "owner_id":           owner_id,
+                "water_level_before": level_before,
+                "water_level_after":  level_after,
+                "refill_triggered":   refill,
+                "supply_failure":     supply_fail,
+                "metadata": {
+                    "water_level": data.get("water_level"),
+                    "valve_state": data.get("valve_state"),
+                    "event":       "level_low" if (state_changed and current_state == "low")
+                                   else "level_restored" if (state_changed and current_state == "ok")
+                                   else "supply_failure",
+                    "raw": data,
+                },
+            }).execute()
+            logger.info("WATER event recorded: %s→%s (device=%s)", prev_state, current_state, device_id)
+        except Exception as e:
+            logger.error("water_events insert failed: %s", e)
+    else:
+        logger.debug("WATER no state change (%s) — skipping DB write (device=%s)", current_state, device_id)
+
+    # ── Refill counter: decrement when a refill cycle just completed ──
+    # ESP32 sends refill_completed=true on the packet where the servo
+    # finishes its 2-second open cycle and closes. It also reports
+    # refills_remaining (AFTER decrement) so we persist it here.
+    refill_completed = bool(data.get("refill_completed", False))
+    if refill_completed:
+        _handle_water_refill_completed(device, data)
+
+    # ── Alert logic — deduplicated ────────────────────────────────
+    if state_changed and current_state == "low":
+        if not _has_open_alert(device_id, "low_water"):
+            _insert_alert(device_id, owner_id, "low_water", "warning",
+                          "⚠️ Nivel de Agua Bajo",
+                          f"El nivel de agua es bajo en '{device['device_name']}'. "
+                          "El dispensador intentará recarga automática.")
+
+    if state_changed and current_state == "ok":
+        logger.info("WATER level restored on device=%s", device_id)
 
     if supply_fail:
-        _insert_alert(device_id, owner_id, "failed_water_refill", "critical",
-                      "🚨 Water Refill Failed",
-                      f"Water supply failure on device '{device['device_name']}'. "
-                      "Check water supply connection.")
+        if not _has_open_alert(device_id, "failed_water_refill"):
+            _insert_alert(device_id, owner_id, "failed_water_refill", "critical",
+                          "🚨 Fallo en Recarga de Agua",
+                          f"Fallo de suministro en '{device['device_name']}'. "
+                          "Revisa la conexión del depósito de recarga.")
+
+
+def _handle_water_refill_completed(device: dict, data: dict) -> None:
+    """
+    Called when the ESP32 reports a completed refill cycle (servo opened 2s + closed).
+    Persists refills_remaining from the device report and fires alerts at 1 and 0.
+    """
+    device_id = device["id"]
+    owner_id  = device["owner_id"]
+    refills   = data.get("refills_remaining")  # reported by ESP32 AFTER decrement
+
+    logger.info("WATER refill completed — remaining=%s device=%s", refills, device_id)
+
+    if refills is not None:
+        try:
+            refills = int(refills)
+            res = supabase_admin.table("water_configurations").select("id") \
+                      .eq("device_id", device_id).execute()
+            if res.data:
+                supabase_admin.table("water_configurations") \
+                    .update({"refills_remaining": refills}) \
+                    .eq("id", res.data[0]["id"]).execute()
+        except Exception as e:
+            logger.error("water_configurations refill update failed: %s", e)
+            refills = -1
+
+    # Alert at 1 remaining
+    if refills == 1:
+        if not _has_open_alert(device_id, "water_refill_low"):
+            _insert_alert(device_id, owner_id, "water_refill_low", "warning",
+                          "⚠️ Última recarga de agua disponible",
+                          f"Al dispensador '{device['device_name']}' le queda solo 1 recarga. "
+                          "Rellena el depósito y reinicia el contador en la app.")
+
+    # Alert at 0 — valve locked on device
+    if refills == 0:
+        if not _has_open_alert(device_id, "water_refills_exhausted"):
+            _insert_alert(device_id, owner_id, "water_refills_exhausted", "critical",
+                          "🚨 Recargas de agua agotadas",
+                          f"El dispensador '{device['device_name']}' ha agotado sus recargas. "
+                          "La válvula está bloqueada. Rellena el depósito y reinicia el "
+                          "contador en 'Water Settings'.")
 
 
 def handle_motion(device: dict, data: dict) -> None:
@@ -406,24 +488,11 @@ def handle_environmental(device: dict, data: dict) -> None:
     except Exception as e:
         logger.error("environmental_events insert failed: %s", e)
 
-    if status in ("too_low", "too_high"):
-        if _has_open_alert(device_id, "temperature_out_of_range"):
-            logger.debug(
-                "ENV duplicate alert skipped — open temperature_out_of_range exists (device=%s status=%s)",
-                device_id, status,
-            )
-        else:
-            actuator_label = "activated" if actuator_trig else "not activated"
-            _insert_alert(
-                device_id, owner_id,
-                alert_type = "temperature_out_of_range",
-                severity   = "critical",
-                title      = "Temperatura fuera de rango",
-                message    = (
-                    f"Temperatura {temperature}C en '{device['device_name']}' "
-                    f"(estado: {status}). Control automatico {actuator_label}."
-                ),
-            )
+    if status in ("too_low","too_high"):
+        _insert_alert(device_id, owner_id, "temperature_out_of_range", "critical",
+                      "🚨 Temperature Out of Range",
+                      f"Temperature is {temperature}°C on device '{device['device_name']}' "
+                      f"(status: {status}). Automatic control {"activated" if actuator_trig else "not activated"}.")
 
 
 def handle_door(device: dict, data: dict) -> None:

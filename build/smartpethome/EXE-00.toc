@@ -68,7 +68,7 @@
  [],
  False,
  False,
- 1780631196,
+ 1780556352,
  [('run.exe',
    'b:\\TEC\\SmartPetTec\\SmartPetTec\\.venv\\Lib\\site-packages\\PyInstaller\\bootloader\\Windows-64bit-intel\\run.exe',
    'EXECUTABLE')],

@@ -11,7 +11,6 @@ Device management routes:
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from utils import login_required, get_supabase_with_session, current_user_id
-from config import supabase_admin
 
 devices_bp = Blueprint("devices", __name__, url_prefix="/devices")
 
@@ -114,29 +113,6 @@ def new():
                 locations=locations,
             )
 
-        # Check for duplicate serial number across all users (bypasses RLS)
-        try:
-            dup = (supabase_admin.table("devices")
-                   .select("id")
-                   .eq("serial_number", serial_number)
-                   .limit(1)
-                   .execute())
-            if dup.data:
-                flash(
-                    "This serial number is already registered. "
-                    "Please check the device serial or contact support.",
-                    "error",
-                )
-                return render_template(
-                    "device_form.html",
-                    device=None,
-                    device_types=device_types,
-                    pets=pets,
-                    locations=locations,
-                )
-        except Exception:
-            pass  # If the check itself fails, proceed and let the insert catch the constraint
-
         try:
             sb.table("devices").insert({
                 "owner_id": uid,
@@ -153,15 +129,7 @@ def new():
             return redirect(url_for("devices.index"))
 
         except Exception as e:
-            err_str = str(e).lower()
-            if "unique" in err_str or "duplicate" in err_str or "serial_number" in err_str:
-                flash(
-                    "This serial number is already registered. "
-                    "Please check the device serial or contact support.",
-                    "error",
-                )
-            else:
-                flash("Error registering device. Please try again.", "error")
+            flash(f"Error registering device: {e}", "error")
 
     return render_template(
         "device_form.html",
