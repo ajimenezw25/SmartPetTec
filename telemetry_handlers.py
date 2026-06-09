@@ -123,6 +123,8 @@ def _insert_alert(device_id: str, owner_id: str, alert_type: str,
 # Resets to None on Flask restart (first packet re-initialises it).
 _feeder_last_state: dict[str, str] = {}
 _water_last_state:  dict[str, str] = {}   # device_id → "low" | "ok"
+# door state tracker: device_id → {"door_state": str, "action": str}
+_door_last_state:   dict[str, dict] = {}
 
 
 # ── Per-device-type handlers ──────────────────────────────────
@@ -495,42 +497,127 @@ def handle_environmental(device: dict, data: dict) -> None:
                       f"(status: {status}). Automatic control {"activated" if actuator_trig else "not activated"}.")
 
 
+def _door_is_duplicate(device_id: str, door_state: str, action: str) -> bool:
+    """
+    Return True if the last known door state for this device is the same.
+    Checks in-memory cache first; falls back to a single Supabase query on
+    Flask restart (when the cache is empty) so we never spam the DB after a
+    process restart either.
+    """
+    cached = _door_last_state.get(device_id)
+    if cached is not None:
+        return cached["door_state"] == door_state and cached["action"] == action
+
+    # Cache miss (first packet after restart) — query the latest stored event
+    try:
+        res = (
+            supabase_admin.table("access_door_events")
+            .select("action, metadata")
+            .eq("device_id", device_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if res.data:
+            prev = res.data[0]
+            prev_state  = (prev.get("metadata") or {}).get("door_state", "")
+            prev_action = prev.get("action", "")
+            _door_last_state[device_id] = {"door_state": prev_state, "action": prev_action}
+            return prev_state == door_state and prev_action == action
+    except Exception as e:
+        logger.error("DOOR fallback state query failed: %s", e)
+
+    return False  # on error allow the insert
+
+
 def handle_door(device: dict, data: dict) -> None:
-    """automatic_access_door telemetry → access_door_events."""
+    """
+    automatic_access_door telemetry → access_door_events.
+
+    Inserts a row ONLY on meaningful transitions:
+      * door_state changes (closed→open or open→closed)
+      * action is explicitly "open" or "close" AND state differs from last insert
+      * success is False (failures always recorded)
+
+    Heartbeat/repeated-same-state packets update the in-memory tracker and
+    trigger alert evaluation but do NOT write a new DB row.
+    """
     owner_id  = device["owner_id"]
     device_id = device["id"]
 
-    action  = data.get("action", "open")
-    source  = data.get("source", "manual")
-    success = bool(data.get("success", True))
+    raw_action  = data.get("action", "")
+    source      = data.get("source", "app")
+    success     = bool(data.get("success", True))
+    door_state  = data.get("door_state", "")
+    error_msg   = data.get("error_message") or ""
 
-    if action not in ("open","close"):
-        action = "open"
-    if source not in ("manual","scheduled","sensor"):
-        source = "manual"
+    # Normalise action for DB storage — "heartbeat" is not a valid action column value
+    action = raw_action if raw_action in ("open", "close") else "close"
 
-    try:
-        supabase_admin.table("access_door_events").insert({
-            "device_id": device_id,
-            "owner_id":  owner_id,
-            "action":    action,
-            "source":    source,
-            "success":   success,
-            "metadata": {
-                "door_state":    data.get("door_state"),
-                "error_message": data.get("error_message"),
-                "raw": data,
-            },
-        }).execute()
-    except Exception as e:
-        logger.error("access_door_events insert failed: %s", e)
+    if source not in ("serial", "app", "heartbeat", "manual", "scheduled", "sensor"):
+        source = "app"
 
-    if not success:
-        _insert_alert(device_id, owner_id,
-                      f"door_failed_to_{action}", "critical",
-                      f"🚨 Door Failed to {action.capitalize()}",
-                      f"Door on device '{device['device_name']}' failed to {action}. "
-                      f"Error: {data.get('error_message','unknown')}")
+    logger.debug("DOOR telemetry received — device=%s raw_action=%s source=%s door_state=%s success=%s",
+                 device_id, raw_action, source, door_state, success)
+
+    # ── Decide whether to insert ──────────────────────────────────
+    # Always insert on failure; skip repeated identical success packets.
+    is_heartbeat    = raw_action in ("heartbeat",) or source == "heartbeat"
+    is_duplicate    = _door_is_duplicate(device_id, door_state, action)
+
+    should_insert = not success or (not is_heartbeat and not is_duplicate)
+
+    if should_insert:
+        try:
+            supabase_admin.table("access_door_events").insert({
+                "device_id": device_id,
+                "owner_id":  owner_id,
+                "action":    action,
+                "source":    source,
+                "success":   success,
+                "metadata": {
+                    "door_state":    door_state,
+                    "error_message": error_msg or None,
+                    "raw": data,
+                },
+            }).execute()
+            _door_last_state[device_id] = {"door_state": door_state, "action": action}
+            logger.info("DOOR access_door_events insert OK — device=%s action=%s door_state=%s",
+                        device_id, action, door_state)
+        except Exception as e:
+            logger.error("access_door_events insert failed: %s", e)
+    else:
+        logger.debug("DOOR duplicate/heartbeat skipped — device=%s door_state=%s action=%s",
+                     device_id, door_state, action)
+
+    # ── Alert logic — runs on every packet regardless of insert ──
+    if success and door_state == "open":
+        if not _has_open_alert(device_id, "door_open"):
+            _insert_alert(
+                device_id, owner_id,
+                alert_type = "door_open",
+                severity   = "warning",
+                title      = "Door Opened",
+                message    = f"{device['serial_number']} is open.",
+            )
+        else:
+            logger.debug("DOOR door_open alert already open — skipping (device=%s)", device_id)
+
+    elif not success:
+        alert_type = f"door_failed_to_{action}"
+        if not _has_open_alert(device_id, alert_type):
+            detail = f" Error: {error_msg}" if error_msg else ""
+            _insert_alert(
+                device_id, owner_id,
+                alert_type = alert_type,
+                severity   = "critical",
+                title      = f"Door Failed to {action.capitalize()}",
+                message    = (
+                    f"Door on device '{device['device_name']}' failed to {action}.{detail}"
+                ),
+            )
+        else:
+            logger.debug("DOOR %s alert already open — skipping (device=%s)", alert_type, device_id)
 
 
 def handle_reward(device: dict, data: dict) -> None:

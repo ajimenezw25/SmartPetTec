@@ -338,8 +338,215 @@ def get_telemetry():
         except Exception as e:
             logger.error("Telemetry fetch failed (water_events): %s", e)
 
+    # -- motion_monitoring_network -> motion_events --
+    if not filter_device_type or filter_device_type == "motion_monitoring_network":
+        try:
+            q = (sb.table("motion_events")
+                 .select("created_at, detected_at, metadata, "
+                         "devices(id, device_name, serial_number, device_types(slug, name))")
+                 .eq("owner_id", uid)
+                 .order("created_at", desc=True)
+                 .limit(limit))
+            if filter_device_id:
+                q = q.eq("device_id", filter_device_id)
+            res = q.execute()
+            for r in (res.data or []):
+                dev  = r.pop("devices", {}) or {}
+                dt   = dev.pop("device_types", {}) or {}
+                meta = r.get("metadata") or {}
+                rows.append({
+                    "created_at":       r.get("created_at") or r.get("detected_at"),
+                    "device_name":      dev.get("device_name", "—"),
+                    "serial_number":    dev.get("serial_number", "—"),
+                    "device_id":        dev.get("id", ""),
+                    "device_type_slug": dt.get("slug", "motion_monitoring_network"),
+                    "device_type_name": dt.get("name", "Motion Monitor"),
+                    "status_color":     "yellow",
+                    "event_type":       "motion_detected",
+                    "motion_detected":  meta.get("motion_detected"),
+                    "sensor_code":      meta.get("sensor_code"),
+                    "inactivity_minutes": meta.get("inactivity_minutes"),
+                })
+        except Exception as e:
+            logger.error("Telemetry fetch failed (motion_events): %s", e)
+
+    # -- audio_communication -> audio_events --
+    if not filter_device_type or filter_device_type == "audio_communication":
+        try:
+            q = (sb.table("audio_events")
+                 .select("created_at, audio_url, status, metadata, "
+                         "devices(id, device_name, serial_number, device_types(slug, name))")
+                 .eq("owner_id", uid)
+                 .order("created_at", desc=True)
+                 .limit(limit))
+            if filter_device_id:
+                q = q.eq("device_id", filter_device_id)
+            res = q.execute()
+            for r in (res.data or []):
+                dev  = r.pop("devices", {}) or {}
+                dt   = dev.pop("device_types", {}) or {}
+                meta = r.get("metadata") or {}
+                rows.append({
+                    "created_at":       r.get("created_at"),
+                    "device_name":      dev.get("device_name", "—"),
+                    "serial_number":    dev.get("serial_number", "—"),
+                    "device_id":        dev.get("id", ""),
+                    "device_type_slug": dt.get("slug", "audio_communication"),
+                    "device_type_name": dt.get("name", "Audio Communication"),
+                    "status_color":     "red" if r.get("status") == "failed" else "green",
+                    "event_type":       r.get("status"),
+                    "audio_url":        r.get("audio_url"),
+                    "error_message":    meta.get("error_message"),
+                })
+        except Exception as e:
+            logger.error("Telemetry fetch failed (audio_events): %s", e)
+
+    # -- environmental_monitor -> environmental_events --
+    if not filter_device_type or filter_device_type == "environmental_monitor":
+        try:
+            q = (sb.table("environmental_events")
+                 .select("created_at, temperature, status, actuator_triggered, metadata, "
+                         "devices(id, device_name, serial_number, device_types(slug, name))")
+                 .eq("owner_id", uid)
+                 .order("created_at", desc=True)
+                 .limit(limit))
+            if filter_device_id:
+                q = q.eq("device_id", filter_device_id)
+            res = q.execute()
+            for r in (res.data or []):
+                dev  = r.pop("devices", {}) or {}
+                dt   = dev.pop("device_types", {}) or {}
+                meta = r.get("metadata") or {}
+                st   = r.get("status", "normal")
+                rows.append({
+                    "created_at":         r.get("created_at"),
+                    "device_name":        dev.get("device_name", "—"),
+                    "serial_number":      dev.get("serial_number", "—"),
+                    "device_id":          dev.get("id", ""),
+                    "device_type_slug":   dt.get("slug", "environmental_monitor"),
+                    "device_type_name":   dt.get("name", "Environmental Monitor"),
+                    "status_color":       "red" if st in ("too_low","too_high") else "green",
+                    "event_type":         st,
+                    "temperature":        r.get("temperature"),
+                    "humidity":           meta.get("humidity"),
+                    "actuator_triggered": r.get("actuator_triggered"),
+                })
+        except Exception as e:
+            logger.error("Telemetry fetch failed (environmental_events): %s", e)
+
+    # -- automatic_access_door -> access_door_events --
+    if not filter_device_type or filter_device_type == "automatic_access_door":
+        try:
+            q = (sb.table("access_door_events")
+                 .select("created_at, action, source, success, metadata, "
+                         "devices(id, device_name, serial_number, device_types(slug, name))")
+                 .eq("owner_id", uid)
+                 .order("created_at", desc=True)
+                 .limit(limit))
+            if filter_device_id:
+                q = q.eq("device_id", filter_device_id)
+            res = q.execute()
+            door_count = len(res.data or [])
+            logger.info("Telemetry API access_door_events count=%d (user=%s)", door_count, uid)
+            for r in (res.data or []):
+                dev       = r.pop("devices", {}) or {}
+                dt        = dev.pop("device_types", {}) or {}
+                meta      = r.get("metadata") or {}
+                success   = r.get("success", True)
+                door_state = meta.get("door_state", "")
+                rows.append({
+                    "created_at":       r.get("created_at"),
+                    "device_name":      dev.get("device_name", "—"),
+                    "serial_number":    dev.get("serial_number", "—"),
+                    "device_id":        dev.get("id", ""),
+                    "device_type_slug": dt.get("slug", "automatic_access_door"),
+                    "device_type_name": dt.get("name", "Access Door"),
+                    "status_color":     "red"    if not success
+                                        else "yellow" if door_state == "open"
+                                        else "green",
+                    "event_type":       r.get("action"),
+                    "action":           r.get("action"),
+                    "source":           r.get("source"),
+                    "door_state":       door_state,
+                    "success":          success,
+                    "error_message":    meta.get("error_message"),
+                })
+        except Exception as e:
+            logger.error("Telemetry fetch failed (access_door_events): %s", e)
+
+    # -- interactive_reward_system -> reward_events --
+    if not filter_device_type or filter_device_type == "interactive_reward_system":
+        try:
+            q = (sb.table("reward_events")
+                 .select("created_at, pressed_button, winning_button, reward_dispensed, "
+                         "daily_reward_count, metadata, "
+                         "devices(id, device_name, serial_number, device_types(slug, name))")
+                 .eq("owner_id", uid)
+                 .order("created_at", desc=True)
+                 .limit(limit))
+            if filter_device_id:
+                q = q.eq("device_id", filter_device_id)
+            res = q.execute()
+            for r in (res.data or []):
+                dev = r.pop("devices", {}) or {}
+                dt  = dev.pop("device_types", {}) or {}
+                won = r.get("pressed_button") == r.get("winning_button")
+                rows.append({
+                    "created_at":        r.get("created_at"),
+                    "device_name":       dev.get("device_name", "—"),
+                    "serial_number":     dev.get("serial_number", "—"),
+                    "device_id":         dev.get("id", ""),
+                    "device_type_slug":  dt.get("slug", "interactive_reward_system"),
+                    "device_type_name":  dt.get("name", "Reward System"),
+                    "status_color":      "green" if won else "gray",
+                    "event_type":        "reward_dispensed" if r.get("reward_dispensed") else "button_pressed",
+                    "pressed_button":    r.get("pressed_button"),
+                    "winning_button":    r.get("winning_button"),
+                    "reward_dispensed":  r.get("reward_dispensed"),
+                    "daily_reward_count": r.get("daily_reward_count"),
+                })
+        except Exception as e:
+            logger.error("Telemetry fetch failed (reward_events): %s", e)
+
+    # -- automatic_ball_launcher -> ball_launcher_events --
+    if not filter_device_type or filter_device_type == "automatic_ball_launcher":
+        try:
+            q = (sb.table("ball_launcher_events")
+                 .select("created_at, launch_source, trajectory_number, "
+                         "ball_count_after_launch, success, metadata, "
+                         "devices(id, device_name, serial_number, device_types(slug, name))")
+                 .eq("owner_id", uid)
+                 .order("created_at", desc=True)
+                 .limit(limit))
+            if filter_device_id:
+                q = q.eq("device_id", filter_device_id)
+            res = q.execute()
+            for r in (res.data or []):
+                dev  = r.pop("devices", {}) or {}
+                dt   = dev.pop("device_types", {}) or {}
+                meta = r.get("metadata") or {}
+                rows.append({
+                    "created_at":             r.get("created_at"),
+                    "device_name":            dev.get("device_name", "—"),
+                    "serial_number":          dev.get("serial_number", "—"),
+                    "device_id":              dev.get("id", ""),
+                    "device_type_slug":       dt.get("slug", "automatic_ball_launcher"),
+                    "device_type_name":       dt.get("name", "Ball Launcher"),
+                    "status_color":           "red" if not r.get("success") else
+                                              "red" if meta.get("empty_container") else "green",
+                    "event_type":             "launch_failed" if not r.get("success") else "launched",
+                    "launch_source":          r.get("launch_source"),
+                    "trajectory_number":      r.get("trajectory_number"),
+                    "ball_count_after_launch": r.get("ball_count_after_launch"),
+                    "error_message":          meta.get("error_message"),
+                })
+        except Exception as e:
+            logger.error("Telemetry fetch failed (ball_launcher_events): %s", e)
+
     # Sort combined rows newest-first and trim to limit
     rows.sort(key=lambda r: r.get("created_at") or "", reverse=True)
+    total = len(rows[:limit])
+    logger.info("Telemetry API total events returned=%d (user=%s)", total, uid)
     return ok(rows[:limit])
 
 
