@@ -466,29 +466,103 @@ def _handle_water_refill_completed(device: dict, data: dict) -> None:
 def handle_motion(device: dict, data: dict) -> None:
     """motion_monitoring_network telemetry → motion_events.
 
-    Inserts a row ONLY on state transitions:
-      no-motion → motion-detected  : event saved
-      motion-detected → no-motion  : event saved (area cleared)
-      same state repeated           : skip DB write
+    Supports two modes:
+
+    1. Event-based (ESP32 MOTION-001 style): the device sends a specific
+       ``event`` field ("no_motion_1_minute" or "motion_resumed") only when a
+       meaningful transition occurs.  The backend trusts this and creates one
+       alert per event — no duplicate guard needed beyond _has_open_alert.
+
+    2. State-change (legacy): no ``event`` field — insert DB row only on
+       motion_detected transitions. Inactivity-minutes alert path preserved.
     """
     owner_id  = device["owner_id"]
     device_id = device["id"]
+    serial    = device.get("serial_number", device_id)
 
-    detected_at   = data.get("detected_at") or _now_iso()
-    motion_now    = bool(data.get("motion_detected", False))
-    prev_motion   = _motion_last_state.get(device_id)   # None on first packet
+    event        = data.get("event")          # "no_motion_1_minute" | "motion_resumed" | None
+    motion_now   = bool(data.get("motion_detected", False))
+    detected_at  = data.get("detected_at") or _now_iso()
 
+    # ── Event-based path ──────────────────────────────────────────────
+    if event in ("no_motion_1_minute", "motion_resumed"):
+        logger.info("MOTION event-based telemetry — event=%s device=%s", event, device_id)
+
+        # Always record the event in motion_events
+        try:
+            supabase_admin.table("motion_events").insert({
+                "device_id":        device_id,
+                "owner_id":         owner_id,
+                "motion_sensor_id": None,
+                "detected_at":      detected_at,
+                "metadata": {
+                    "motion_detected":          motion_now,
+                    "event":                    event,
+                    "pir_state":                data.get("pir_state"),
+                    "no_motion_duration_seconds": data.get("no_motion_duration_seconds"),
+                    "status_color":             data.get("status_color"),
+                    "source":                   data.get("source"),
+                    "raw": data,
+                },
+            }).execute()
+            logger.info("MOTION motion_events insert OK — event=%s device=%s", event, device_id)
+        except Exception as e:
+            logger.error("MOTION motion_events insert failed: %s", e)
+
+        # Alert logic — one alert per continuous no-motion period
+        if event == "no_motion_1_minute":
+            if not _has_open_alert(device_id, "no_motion_detected"):
+                _insert_alert(
+                    device_id, owner_id,
+                    alert_type = "no_motion_detected",
+                    severity   = "warning",
+                    title      = "No Motion Detected",
+                    message    = f"{serial} has detected no motion for 1 minute.",
+                )
+                logger.info("MOTION no_motion_detected alert created (device=%s)", device_id)
+            else:
+                logger.debug("MOTION no_motion_detected alert already open — skipping (device=%s)", device_id)
+
+        elif event == "motion_resumed":
+            if not _has_open_alert(device_id, "motion_resumed"):
+                _insert_alert(
+                    device_id, owner_id,
+                    alert_type = "motion_resumed",
+                    severity   = "info",
+                    title      = "Motion Detected Again",
+                    message    = f"{serial} detected motion again.",
+                )
+                logger.info("MOTION motion_resumed alert created (device=%s)", device_id)
+            else:
+                logger.debug("MOTION motion_resumed alert already open — skipping (device=%s)", device_id)
+
+            # Resolve any open no_motion_detected alert
+            try:
+                supabase_admin.table("alerts").update({
+                    "resolved_at": _now_iso(),
+                    "is_read":     True,
+                }).eq("device_id",  device_id) \
+                  .eq("alert_type", "no_motion_detected") \
+                  .is_("resolved_at", "null") \
+                  .execute()
+            except Exception as e:
+                logger.error("MOTION could not resolve no_motion_detected alert: %s", e)
+
+        _motion_last_state[device_id] = motion_now
+        return
+
+    # ── Legacy state-change path ──────────────────────────────────────
+    prev_motion  = _motion_last_state.get(device_id)
     state_changed = (prev_motion is None and motion_now) or (prev_motion != motion_now)
     _motion_last_state[device_id] = motion_now
 
-    logger.debug("MOTION device=%s prev=%s now=%s changed=%s",
+    logger.debug("MOTION legacy path device=%s prev=%s now=%s changed=%s",
                  device_id, prev_motion, motion_now, state_changed)
 
     if not state_changed and not data.get("inactivity_minutes"):
         logger.debug("MOTION no state change — skipping DB write (device=%s)", device_id)
     else:
-        # Find sensor if sensor_code provided
-        sensor_id = None
+        sensor_id   = None
         sensor_code = data.get("sensor_code")
         if sensor_code:
             try:

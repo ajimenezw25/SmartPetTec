@@ -1,3 +1,4 @@
 Ventilador: ENV-001
 Feeder: FEEDER-001
 Compuerta: DOOR-001
+Sensor: MOTION-001

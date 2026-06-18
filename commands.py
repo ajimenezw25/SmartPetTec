@@ -65,7 +65,7 @@ DEVICE_COMMANDS: dict[str, list[dict]] = {
         },
         {"command": "enable_monitoring",  "label": "Enable Monitoring",  "params": []},
         {"command": "disable_monitoring", "label": "Disable Monitoring", "params": []},
-        {"command": "get_status",         "label": "Refresh Status",     "params": []},
+        {"command": "reset_motion_alert", "label": "Calibrate Sensor",   "params": []},
     ],
     "audio_communication": [
         {
