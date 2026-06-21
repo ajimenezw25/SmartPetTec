@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>📱 SmartPetHome — Parlante Virtual</title>
+  <style>
+    :root {
+      --primary:   #0077B6;
+      --primary-d: #004C7F;
+      --teal:      #00A6C8;
+      --accent:    #F7941D;
+      --bg:        #FAF8F2;
+      --surface:   #ffffff;
+      --border:    #dde8f0;
+      --text:      #12313F;
+      --muted:     #5a7080;
+      --success:   #1a8a5e;
+      --danger:    #c0392b;
+      --radius:    10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Trebuchet MS', 'Helvetica Neue', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 1.25rem 1rem 2rem;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      margin-bottom: 1.25rem;
+    }
+    .header-icon { font-size: 1.75rem; }
+    .header h1  { font-size: 1.15rem; font-weight: 700; line-height: 1.2; }
+    .header p   { font-size: .78rem; color: var(--muted); }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.1rem 1.1rem;
+      margin-bottom: .9rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .card h2 { font-size: .95rem; font-weight: 700; margin-bottom: .75rem; color: var(--text); }
+
+    /* ── Config fields ── */
+    .field { margin-bottom: .65rem; }
+    .field label { display: block; font-size: .78rem; color: var(--muted); margin-bottom: .25rem; }
+    .field input {
+      width: 100%;
+      padding: .55rem .75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: .9rem;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .field input:focus { outline: 2px solid var(--primary); border-color: transparent; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: block;
+      width: 100%;
+      padding: .7rem;
+      border-radius: var(--radius);
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); opacity: .85; }
+    .btn-primary  { background: var(--primary); color: #fff; }
+    .btn-danger   { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+    .btn-outline  { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn + .btn   { margin-top: .5rem; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* ── Status row ── */
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: .55rem;
+      font-size: .85rem;
+    }
+    .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: #ccc;
+    }
+    .dot-green  { background: var(--success); }
+    .dot-red    { background: var(--danger); }
+    .dot-amber  { background: var(--accent); }
+
+    /* ── Speaker ── */
+    .speaker-wrap { text-align: center; padding: 1rem 0 .75rem; }
+    .speaker-emoji {
+      font-size: 5rem;
+      display: block;
+      margin-bottom: .5rem;
+      transition: transform .15s;
+    }
+    .speaker-emoji.playing { animation: throb 1s ease-in-out infinite; }
+    @keyframes throb {
+      0%,100% { transform: scale(1); }
+      50%      { transform: scale(1.1); }
+    }
+    .speaker-label { font-size: .9rem; color: var(--muted); min-height: 1.3rem; }
+
+    /* ── Volume ── */
+    .vol-row { display: flex; align-items: center; gap: .75rem; margin-top: .9rem; }
+    .vol-row span { font-size: .8rem; color: var(--muted); white-space: nowrap; }
+    .vol-row input[type=range] { flex: 1; accent-color: var(--primary); }
+    .vol-val { font-weight: 700; font-size: .85rem; min-width: 2rem; text-align: right; }
+
+    /* ── Log ── */
+    .log {
+      font-family: 'Courier New', monospace;
+      font-size: .75rem;
+      background: #f0f4f8;
+      border-radius: 8px;
+      padding: .7rem;
+      max-height: 200px;
+      overflow-y: auto;
+      color: var(--muted);
+    }
+    .ll { margin-bottom: 2px; }
+    .lok  { color: var(--success); }
+    .lerr { color: var(--danger); }
+    .linf { color: var(--primary); }
+    .lwrn { color: var(--accent); }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-block;
+      padding: .15rem .45rem;
+      border-radius: 99px;
+      font-size: .72rem;
+      font-weight: 700;
+      background: var(--border);
+      color: var(--muted);
+    }
+    .badge-green { background: #d4f4e8; color: var(--success); }
+    .badge-red   { background: #fdecea; color: var(--danger); }
+    .badge-blue  { background: #ddf0f9; color: var(--primary); }
+
+    audio { width: 100%; margin-top: .75rem; border-radius: 8px; display: none; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-icon">🐾</span>
+  <div>
+    <h1>SmartPetHome</h1>
+    <p>Parlante Virtual — simula el ESP32</p>
+  </div>
+</div>
+
+<!-- Configuración -->
+<div class="card" id="card-config">
+  <h2>⚙️ Configuración</h2>
+  <div class="field">
+    <label>Número de serie del dispositivo</label>
+    <input type="text" id="inp-serial" placeholder="ej: AUDIO-001" value="">
+  </div>
+  <div class="field">
+    <label>Broker MQTT (WebSocket)</label>
+    <input type="text" id="inp-broker" value="broker.emqx.io" readonly>
+  </div>
+  <button class="btn btn-primary" id="btn-connect" onclick="connect()">Conectar al broker</button>
+  <button class="btn btn-danger"  id="btn-disconnect" onclick="disconnect()" style="display:none">Desconectar</button>
+</div>
+
+<!-- Estado de conexión -->
+<div class="card">
+  <div class="status-row">
+    <span class="dot dot-red" id="dot-mqtt"></span>
+    <span id="lbl-mqtt">Desconectado</span>
+    <span class="badge" id="badge-serial" style="margin-left:auto;display:none"></span>
+  </div>
+</div>
+
+<!-- Parlante -->
+<div class="card">
+  <div class="speaker-wrap">
+    <span class="speaker-emoji" id="speaker-emoji">🔈</span>
+    <p class="speaker-label" id="speaker-label">En espera de comandos...</p>
+  </div>
+  <div class="vol-row">
+    <span>Volumen</span>
+    <input type="range" id="vol" min="0" max="100" value="90" oninput="onVolume(this.value)">
+    <span class="vol-val" id="vol-val">90</span>
+  </div>
+  <audio id="audio-el" controls></audio>
+  <button class="btn btn-danger" id="btn-stop" style="display:none;margin-top:.75rem" onclick="stopAudio()">⏹ Detener audio</button>
+</div>
+
+<!-- Log -->
+<div class="card">
+  <h2>📋 Log de eventos</h2>
+  <div class="log" id="log"><div class="ll linf">Esperando conexión...</div></div>
+</div>
+
+<!-- mqtt.js from CDN -->
+<script src="https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js"></script>
+<script>
+'use strict';
+
+// ── Estado global ─────────────────────────────────────────────
+var mqttClient   = null;
+var serialNumber = '';
+var currentVol   = 0.9;
+var audioEl      = document.getElementById('audio-el');
+var isPlaying    = false;
+
+// ── Helpers de UI ─────────────────────────────────────────────
+function log(msg, cls) {
+  var box = document.getElementById('log');
+  var d = document.createElement('div');
+  d.className = 'll' + (cls ? ' ' + cls : '');
+  var t = new Date().toLocaleTimeString('es', {hour12: false});
+  d.textContent = '[' + t + '] ' + msg;
+  box.insertBefore(d, box.firstChild);
+  if (box.children.length > 60) box.removeChild(box.lastChild);
+}
+
+function setMqttStatus(state) {
+  var dot = document.getElementById('dot-mqtt');
+  var lbl = document.getElementById('lbl-mqtt');
+  dot.className = 'dot';
+  if (state === 'connected') {
+    dot.classList.add('dot-green');
+    lbl.textContent = 'Conectado — escuchando comandos';
+    document.getElementById('btn-connect').style.display = 'none';
+    document.getElementById('btn-disconnect').style.display = 'block';
+    var badge = document.getElementById('badge-serial');
+    badge.textContent = serialNumber;
+    badge.className = 'badge badge-green';
+    badge.style.display = 'inline-block';
+  } else if (state === 'connecting') {
+    dot.classList.add('dot-amber');
+    lbl.textContent = 'Conectando...';
+  } else {
+    dot.classList.add('dot-red');
+    lbl.textContent = 'Desconectado';
+    document.getElementById('btn-connect').style.display = 'block';
+    document.getElementById('btn-disconnect').style.display = 'none';
+    document.getElementById('badge-serial').style.display = 'none';
+  }
+}
+
+function setPlaying(playing, label) {
+  isPlaying = playing;
+  var emoji = document.getElementById('speaker-emoji');
+  var lbl   = document.getElementById('speaker-label');
+  var stop  = document.getElementById('btn-stop');
+  if (playing) {
+    emoji.textContent = '🔊';
+    emoji.classList.add('playing');
+    lbl.textContent = label || 'Reproduciendo...';
+    stop.style.display = 'block';
+    audioEl.style.display = 'block';
+  } else {
+    emoji.textContent = '🔈';
+    emoji.classList.remove('playing');
+    lbl.textContent = 'En espera de comandos...';
+    stop.style.display = 'none';
+  }
+}
+
+// ── Topics MQTT ───────────────────────────────────────────────
+function topicCmd()       { return 'smartpethome/devices/' + serialNumber + '/command'; }
+function topicAck()       { return 'smartpethome/devices/' + serialNumber + '/ack'; }
+function topicTelemetry() { return 'smartpethome/devices/' + serialNumber + '/telemetry'; }
+function topicStatus()    { return 'smartpethome/devices/' + serialNumber + '/status'; }
+
+// ── Publicar ACK al backend ───────────────────────────────────
+function publishAck(commandId, command, extra) {
+  if (!mqttClient) return;
+  var payload = Object.assign({
+    command_id: commandId,
+    command:    command,
+    status:     'ok',
+  }, extra || {});
+  mqttClient.publish(topicAck(), JSON.stringify(payload), { qos: 1 });
+  log('ACK enviado: ' + command + ' (' + commandId.slice(0,8) + '...)', 'linf');
+}
+
+// ── Publicar telemetría al backend ────────────────────────────
+function publishTelemetry(data) {
+  if (!mqttClient) return;
+  // El backend acepta payload plano o wrapped en {data:{}}
+  mqttClient.publish(topicTelemetry(), JSON.stringify({ data: data }), { qos: 1 });
+  log('Telemetría enviada: ' + JSON.stringify(data).slice(0, 80), 'linf');
+}
+
+// ── Publicar heartbeat de status ──────────────────────────────
+function publishStatus() {
+  if (!mqttClient) return;
+  mqttClient.publish(topicStatus(), JSON.stringify({
+    status:       'online',
+    device_type:  'audio_communication',
+    volume_level: Math.round(currentVol * 100),
+    is_playing:   isPlaying,
+    firmware:     'phone-sim-1.0',
+  }), { qos: 0 });
+}
+
+// ── Reproducir audio ──────────────────────────────────────────
+function playAudio(audioUrl, commandId) {
+  if (isPlaying) { audioEl.pause(); }
+
+  var startedAt = new Date().toISOString();
+  audioEl.src    = audioUrl;
+  audioEl.volume = currentVol;
+
+  audioEl.play()
+    .then(function() {
+      setPlaying(true, 'Reproduciendo mensaje de voz...');
+      log('▶ Reproduciendo: ' + audioUrl.split('/').pop(), 'lok');
+
+      // Telemetría: reproducción iniciada
+      publishTelemetry({
+        status:            'played',
+        audio_file:        audioUrl,
+        playback_started:  startedAt,
+        volume_level:      Math.round(currentVol * 100),
+      });
+
+      // ACK inmediato
+      publishAck(commandId, 'play_audio', { audio_file: audioUrl });
+    })
+    .catch(function(e) {
+      log('❌ Error al reproducir: ' + e.message, 'lerr');
+      setPlaying(false);
+
+      // Telemetría: fallo
+      publishTelemetry({
+        status:        'failed',
+        audio_file:    audioUrl,
+        error_message: e.message,
+        volume_level:  Math.round(currentVol * 100),
+      });
+
+      publishAck(commandId, 'play_audio', { status: 'error', error: e.message });
+    });
+}
+
+audioEl.onended = function() {
+  var finishedAt = new Date().toISOString();
+  var lastSrc = audioEl.src;
+  setPlaying(false);
+  log('✅ Audio finalizado.', 'lok');
+
+  // Telemetría: reproducción terminada
+  publishTelemetry({
+    status:             'played',
+    audio_file:         lastSrc,
+    playback_finished:  finishedAt,
+    volume_level:       Math.round(currentVol * 100),
+  });
+};
+
+function stopAudio() {
+  audioEl.pause();
+  audioEl.currentTime = 0;
+  setPlaying(false);
+  log('⏹ Audio detenido manualmente.', 'lwrn');
+  publishTelemetry({
+    status:       'idle',
+    volume_level: Math.round(currentVol * 100),
+  });
+}
+
+// ── Manejar comandos entrantes ────────────────────────────────
+function handleCommand(payload) {
+  var command   = payload.command   || '';
+  var commandId = payload.command_id || 'unknown';
+  var params    = payload.params    || {};
+
+  log('📩 Comando recibido: ' + command, 'linf');
+
+  if (command === 'play_audio') {
+    var audioUrl = params.audio_file || '';
+    if (!audioUrl) {
+      log('⚠️ play_audio sin audio_file.', 'lerr');
+      publishAck(commandId, command, { status: 'error', error: 'audio_file missing' });
+      return;
+    }
+    playAudio(audioUrl, commandId);
+
+  } else if (command === 'stop_audio') {
+    stopAudio();
+    publishAck(commandId, command);
+
+  } else if (command === 'set_volume') {
+    var level = parseInt(params.level, 10);
+    if (!isNaN(level)) {
+      currentVol = Math.max(0, Math.min(100, level)) / 100;
+      document.getElementById('vol').value    = level;
+      document.getElementById('vol-val').textContent = level;
+      if (isPlaying) audioEl.volume = currentVol;
+      log('🔊 Volumen ajustado a ' + level, 'lok');
+    }
+    publishAck(commandId, command, { volume_level: level });
+    publishTelemetry({ status: 'idle', volume_level: level });
+
+  } else if (command === 'get_status') {
+    publishAck(commandId, command, {
+      is_playing:   isPlaying,
+      volume_level: Math.round(currentVol * 100),
+    });
+    publishTelemetry({
+      status:       isPlaying ? 'played' : 'idle',
+      volume_level: Math.round(currentVol * 100),
+    });
+
+  } else {
+    log('⚠️ Comando desconocido: ' + command, 'lwrn');
+    publishAck(commandId, command, { status: 'error', error: 'unknown command' });
+  }
+}
+
+// ── Volumen manual ────────────────────────────────────────────
+function onVolume(val) {
+  currentVol = val / 100;
+  document.getElementById('vol-val').textContent = val;
+  if (isPlaying) audioEl.volume = currentVol;
+}
+
+// ── Conectar al broker ────────────────────────────────────────
+function connect() {
+  serialNumber = document.getElementById('inp-serial').value.trim();
+  if (!serialNumber) {
+    alert('Ingresá el número de serie del dispositivo.');
+    return;
+  }
+
+  if (mqttClient) { mqttClient.end(true); mqttClient = null; }
+
+  setMqttStatus('connecting');
+  log('Conectando a broker.emqx.io:8083 (WebSocket)...', 'linf');
+
+  // Puerto 8083 = WebSocket sin TLS (ws://) — igual que MQTT_TLS=false en tu config
+  mqttClient = mqtt.connect('ws://broker.emqx.io:8083/mqtt', {
+    clientId:        'smartpethome-phone-' + Math.random().toString(16).slice(2, 10),
+    protocolVersion: 5,
+    clean:           true,
+    keepalive:       60,
+    reconnectPeriod: 3000,
+  });
+
+  mqttClient.on('connect', function() {
+    setMqttStatus('connected');
+    log('✅ Conectado al broker.', 'lok');
+
+    // Suscribirse al topic de comandos — igual que el ESP32 real
+    mqttClient.subscribe(topicCmd(), { qos: 1 }, function(err) {
+      if (err) { log('❌ Error al suscribirse: ' + err.message, 'lerr'); return; }
+      log('📡 Suscrito a: ' + topicCmd(), 'lok');
+    });
+
+    // Publicar status online inmediatamente
+    publishStatus();
+
+    // Heartbeat cada 30 segundos
+    if (window._heartbeat) clearInterval(window._heartbeat);
+    window._heartbeat = setInterval(publishStatus, 30000);
+  });
+
+  mqttClient.on('message', function(topic, msg) {
+    var raw = msg.toString();
+    try {
+      var payload = JSON.parse(raw);
+      if (topic === topicCmd()) { handleCommand(payload); }
+    } catch(e) {
+      log('❌ Mensaje inválido: ' + raw.slice(0,60), 'lerr');
+    }
+  });
+
+  mqttClient.on('error', function(e) {
+    log('❌ Error MQTT: ' + e.message, 'lerr');
+    setMqttStatus('disconnected');
+  });
+
+  mqttClient.on('offline', function() {
+    setMqttStatus('disconnected');
+    log('⚠️ Broker desconectado.', 'lwrn');
+  });
+
+  mqttClient.on('reconnect', function() {
+    setMqttStatus('connecting');
+    log('🔄 Reconectando...', 'lwrn');
+  });
+}
+
+function disconnect() {
+  if (window._heartbeat) clearInterval(window._heartbeat);
+  if (mqttClient) {
+    // Publicar status offline antes de desconectar
+    try {
+      mqttClient.publish(topicStatus(), JSON.stringify({ status: 'offline' }), { qos: 0 });
+    } catch(e) {}
+    mqttClient.end(true);
+    mqttClient = null;
+  }
+  setMqttStatus('disconnected');
+  log('🔌 Desconectado.', 'lwrn');
+}
+
+// ── Wake Lock (evita que la pantalla se apague) ───────────────
+if ('wakeLock' in navigator) {
+  navigator.wakeLock.request('screen')
+    .then(function() { log('🔒 Pantalla bloqueada activa.', 'linf'); })
+    .catch(function() {});
+}
+</script>
+</body>
+</html>
