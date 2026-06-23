@@ -85,6 +85,322 @@
         📡 View Telemetry
       </a>
     </div>
+
+    {% if device.device_types and device.device_types.slug == 'audio_communication' %}
+    <div class="form-card" style="margin-top:1rem;">
+      <h2>🎙️ Enviar mensaje de voz</h2>
+      <p class="text-muted">
+        Graba un mensaje para tu mascota. Se reproducirá en el parlante
+        del dispositivo en segundos.
+      </p>
+
+      <div id="audio-recorder">
+        <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+          <button id="btn-record" type="button" class="btn btn-outline" onclick="startAudioRecording()">
+            ⏺ Grabar
+          </button>
+          <button id="btn-stop" type="button" class="btn btn-outline" style="display:none" onclick="stopAudioRecording()">
+            ⏹ Detener
+          </button>
+          <button id="btn-send" type="button" class="btn btn-primary" style="display:none" onclick="sendAudioMessage()">
+            📤 Enviar a la mascota
+          </button>
+          <span id="rec-timer" style="display:none;color:var(--color-danger, #c0392b);font-size:.875rem;">
+            ⏺ <span id="rec-seconds">0</span>s
+          </span>
+        </div>
+
+        <audio id="audio-preview" controls style="display:none;margin-top:.75rem;width:100%;"></audio>
+
+        <p id="audio-status" class="text-muted" style="margin-top:.75rem;min-height:1.25rem;"></p>
+      </div>
+    </div>
+
+    <script>
+    (function () {
+      var DEVICE_ID = "{{ device.id }}";
+      var mediaRecorder = null;
+      var audioChunks   = [];
+      var audioBlob     = null;
+      var timerInterval = null;
+      var seconds       = 0;
+
+      window.startAudioRecording = function () {
+        audioChunks = [];
+        audioBlob   = null;
+
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.ondataavailable = function (e) { audioChunks.push(e.data); };
+          mediaRecorder.onstop = function () {
+            audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+            var url = URL.createObjectURL(audioBlob);
+            var preview = document.getElementById("audio-preview");
+            preview.src = url;
+            preview.style.display = "block";
+            document.getElementById("btn-send").style.display = "inline-block";
+            setAudioStatus("✅ Grabación lista. Escuchá el preview y luego enviá.");
+          };
+
+          mediaRecorder.start();
+          startAudioTimer();
+          toggleAudioBtn("btn-record", false);
+          toggleAudioBtn("btn-stop", true);
+          document.getElementById("rec-timer").style.display = "inline";
+          setAudioStatus("⏺ Grabando…");
+        }).catch(function (e) {
+          setAudioStatus("❌ No se pudo acceder al micrófono: " + e.message);
+        });
+      };
+
+      window.stopAudioRecording = function () {
+        if (mediaRecorder) {
+          mediaRecorder.stop();
+          mediaRecorder.stream.getTracks().forEach(function (t) { t.stop(); });
+        }
+        stopAudioTimer();
+        toggleAudioBtn("btn-stop", false);
+        toggleAudioBtn("btn-record", true);
+        document.getElementById("rec-timer").style.display = "none";
+      };
+
+      window.sendAudioMessage = function () {
+        if (!audioBlob) return;
+
+        var btn = document.getElementById("btn-send");
+        btn.disabled = true;
+        setAudioStatus("📤 Enviando…");
+
+        var form = new FormData();
+        form.append("audio", audioBlob, "mensaje.webm");
+
+        fetch("/audio/" + DEVICE_ID + "/upload", { method: "POST", body: form })
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            if (data.ok) {
+              setAudioStatus("🐾 ¡Mensaje enviado! Tu mascota lo escuchará en segundos.");
+              var preview = document.getElementById("audio-preview");
+              if (preview.src) { URL.revokeObjectURL(preview.src); }
+              preview.src = "";
+              preview.style.display = "none";
+              btn.disabled = false;
+              toggleAudioBtn("btn-send", false);
+              audioBlob = null;
+            } else {
+              setAudioStatus("❌ Error: " + (data.error || "desconocido"));
+              btn.disabled = false;
+            }
+          })
+          .catch(function (e) {
+            setAudioStatus("❌ Error de red: " + e.message);
+            btn.disabled = false;
+          });
+      };
+
+      function setAudioStatus(msg) {
+        document.getElementById("audio-status").textContent = msg;
+      }
+
+      function toggleAudioBtn(id, show) {
+        document.getElementById(id).style.display = show ? "inline-block" : "none";
+      }
+
+      function startAudioTimer() {
+        seconds = 0;
+        document.getElementById("rec-seconds").textContent = 0;
+        timerInterval = setInterval(function () {
+          seconds++;
+          document.getElementById("rec-seconds").textContent = seconds;
+          if (seconds >= 60) { window.stopAudioRecording(); }   // límite de 1 minuto
+        }, 1000);
+      }
+
+      function stopAudioTimer() {
+        clearInterval(timerInterval);
+      }
+    })();
+    </script>
+
+    <!-- ── Biblioteca de audios pregrabados ── -->
+    <div class="form-card" style="margin-top:1rem;">
+      <h2>📂 Biblioteca de audios</h2>
+      <p class="text-muted" style="margin-bottom:1rem;">
+        Subí audios pregrabados (MP3, WAV, OGG) y reproducílos en la mascota con un click.
+      </p>
+
+      <!-- Subir nuevo audio -->
+      <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem;">
+        <label style="font-size:.875rem;font-weight:600;cursor:pointer;">
+          <input type="file" id="lib-file-input" accept="audio/*" style="display:none" onchange="libFileSelected(this)">
+          <span class="btn btn-sm btn-outline" onclick="document.getElementById('lib-file-input').click()">
+            ⬆️ Subir audio
+          </span>
+        </label>
+        <input type="text" id="lib-file-name" placeholder="Nombre del audio (ej: Hora de comer)"
+               style="flex:1;min-width:160px;padding:.3rem .6rem;font-size:.85rem;
+                      border:1px solid var(--color-border);border-radius:6px;
+                      background:var(--color-bg);color:var(--color-text);">
+        <button class="btn btn-sm btn-primary" id="lib-upload-btn" onclick="libUpload()" disabled>Guardar</button>
+      </div>
+      <p id="lib-upload-status" class="text-muted" style="min-height:1.1rem;margin-bottom:.75rem;"></p>
+
+      <!-- Lista de audios guardados -->
+      <div id="lib-list">
+        <p class="text-muted">Cargando biblioteca...</p>
+      </div>
+    </div>
+
+    <script>
+    (function () {
+      var DEVICE_ID = "{{ device.id }}";
+      var libFile   = null;
+
+      loadLibrary();
+
+      function loadLibrary() {
+        fetch("/audio/" + DEVICE_ID + "/library", { credentials: "same-origin" })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            var el = document.getElementById("lib-list");
+            if (!data.ok) {
+              el.innerHTML = '<p class="text-muted">Error al cargar la biblioteca.</p>';
+              return;
+            }
+            if (!data.items.length && !window._seedAttempted) {
+              window._seedAttempted = true;
+              el.innerHTML = '<p class="text-muted">⏳ Generando audios base con el nombre de tu mascota...</p>';
+              seedLibrary();
+              return;
+            }
+            if (!data.items.length) {
+              el.innerHTML = '<p class="text-muted">No hay audios guardados todavía.</p>';
+              return;
+            }
+            el.innerHTML = data.items.map(function(item) {
+              // Usar comillas simples en el onclick para evitar conflicto con atributo HTML
+              var safeUrl  = item.url.replace(/'/g, "\\'");
+              var safePath = item.path.replace(/'/g, "\\'");
+              return '<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem 0;'
+                + 'border-bottom:1px solid var(--color-border);flex-wrap:wrap;">'
+                + '<span style="flex:1;font-size:.875rem;font-weight:600;">' + esc(item.name) + '</span>'
+                + '<audio src="' + esc(item.url) + '" controls style="height:28px;"></audio>'
+                + '<button class="btn btn-sm btn-primary" onclick="libPlay(\'' + safeUrl + '\')">'
+                + '▶ Reproducir</button>'
+                + '<button class="btn btn-sm btn-outline" style="border-color:#c0392b;color:#c0392b;"'
+                + ' onclick="libDelete(\'' + safePath + '\',this)">🗑</button>'
+                + '</div>';
+            }).join("");
+          })
+          .catch(function() {
+            document.getElementById("lib-list").innerHTML =
+              '<p class="text-muted">Error al cargar la biblioteca.</p>';
+          });
+      }
+
+      window.libFileSelected = function(input) {
+        libFile = input.files[0] || null;
+        if (libFile) {
+          var nameEl = document.getElementById("lib-file-name");
+          if (!nameEl.value) nameEl.value = libFile.name.replace(/\.[^.]+$/, "");
+          document.getElementById("lib-upload-btn").disabled = false;
+        }
+      };
+
+      window.libUpload = function() {
+        if (!libFile) return;
+        var name = document.getElementById("lib-file-name").value.trim();
+        if (!name) { setLibStatus("\u26a0\ufe0f Ingres\u00e1 un nombre para el audio."); return; }
+        var btn = document.getElementById("lib-upload-btn");
+        btn.disabled = true;
+        setLibStatus("\u2b06\ufe0f Subiendo...");
+        var form = new FormData();
+        form.append("audio", libFile, libFile.name);
+        form.append("name",  name);
+        fetch("/audio/" + DEVICE_ID + "/library/upload", { method: "POST", body: form, credentials: "same-origin" })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            btn.disabled = false;
+            if (data.ok) {
+              setLibStatus("\u2705 Audio guardado: \"" + name + "\"");
+              document.getElementById("lib-file-name").value = "";
+              document.getElementById("lib-file-input").value = "";
+              libFile = null;
+              loadLibrary();
+            } else {
+              setLibStatus("\u274c " + (data.error || "Error desconocido"));
+            }
+          })
+          .catch(function(e) { btn.disabled = false; setLibStatus("\u274c Error de red: " + e.message); });
+      };
+
+      window.libPlay = function(audioUrl) {
+        setLibStatus("\ud83d\udce4 Enviando comando play_audio...");
+        fetch("/api/devices/" + DEVICE_ID + "/command", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          credentials: "same-origin",
+          body: JSON.stringify({ command: "play_audio", params: { audio_file: audioUrl } }),
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.ok) {
+              setLibStatus("\ud83d\udc3e \u00a1Reproduciendo en el dispositivo!");
+              setTimeout(function() { setLibStatus(""); }, 4000);
+            } else {
+              setLibStatus("\u274c " + (data.error || "Error desconocido"));
+            }
+          })
+          .catch(function(e) { setLibStatus("\u274c Error de red: " + e.message); });
+      };
+
+      window.libDelete = function(path, btnEl) {
+        if (!confirm("\u00bfEliminar este audio de la biblioteca?")) return;
+        btnEl.disabled = true;
+        fetch("/audio/" + DEVICE_ID + "/library/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          credentials: "same-origin",
+          body: JSON.stringify({ path: path }),
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.ok) loadLibrary();
+            else { btnEl.disabled = false; setLibStatus("\u274c " + (data.error || "No se pudo eliminar")); }
+          })
+          .catch(function(e) { btnEl.disabled = false; });
+      };
+
+      function seedLibrary() {
+        fetch("/audio/" + DEVICE_ID + "/library/seed", {
+          method: "POST", credentials: "same-origin"
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.ok && data.created.length) {
+              setLibStatus("✅ " + data.created.length + " audios base generados para " + data.pet_name + ".");
+              setTimeout(function() { setLibStatus(""); }, 5000);
+              loadLibrary();
+            } else if (data.error && data.error.indexOf("gTTS") !== -1) {
+              document.getElementById("lib-list").innerHTML =
+                '<p class="text-muted">⚠️ Para generar audios base ejecutá: <code>pip install gtts</code></p>';
+            } else {
+              document.getElementById("lib-list").innerHTML =
+                '<p class="text-muted">No hay audios guardados todavía.</p>';
+            }
+          })
+          .catch(function() {
+            document.getElementById("lib-list").innerHTML =
+              '<p class="text-muted">No hay audios guardados todavía.</p>';
+          });
+      }
+
+      function setLibStatus(msg) { document.getElementById("lib-upload-status").textContent = msg; }
+      function esc(str) {
+        return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+      }
+    })();
+    </script>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

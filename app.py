@@ -55,6 +55,7 @@ from locations import locations_bp
 from api import api_bp
 from telemetry import telemetry_bp
 from door import door_bp
+from audio_communication import audio_communication_bp
 
 
 app = Flask(
@@ -79,6 +80,7 @@ app.register_blueprint(locations_bp)
 app.register_blueprint(api_bp)
 app.register_blueprint(telemetry_bp)
 app.register_blueprint(door_bp)
+app.register_blueprint(audio_communication_bp)
 
 
 @app.route("/end-app", methods=["POST"])

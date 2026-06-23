@@ -1,18 +1,12 @@
 
 ============================================================
-  SmartPetHome — STARTUP ERROR
+  SmartPetHome - STARTUP ERROR
 ============================================================
-supabase_url is required
+No module named 'audio_communication'
 
 Traceback (most recent call last):
-  File "C:\Users\bloodxe\Downloads\SmartPetTec-1.1.1\SmartPetTec-1.1.1\launcher.py", line 90, in <module>
-    from config import FLASK_SECRET_KEY, MQTT_HOST, MQTT_PORT
-  File "C:\Users\bloodxe\Downloads\SmartPetTec-1.1.1\SmartPetTec-1.1.1\config.py", line 41, in <module>
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\bloodxe\Downloads\SmartPetTec-1.1.1\SmartPetTec-1.1.1\.venv\Lib\site-packages\supabase\_sync\client.py", line 299, in create_client
-    return SyncClient(
-           ^^^^^^^^^^^
-  File "C:\Users\bloodxe\Downloads\SmartPetTec-1.1.1\SmartPetTec-1.1.1\.venv\Lib\site-packages\supabase\_sync\client.py", line 51, in __init__
-    raise SupabaseException("supabase_url is required")
-supabase._sync.client.SupabaseException: supabase_url is required
+  File "C:\Users\bloodxe\Desktop\SmartPetTec\launcher.py", line 135, in <module>
+    import app as _app_module
+  File "C:\Users\bloodxe\Desktop\SmartPetTec\app.py", line 58, in <module>
+    from audio_communication import audio_communication_bp
+ModuleNotFoundError: No module named 'audio_communication'
