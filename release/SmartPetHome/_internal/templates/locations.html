@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Locations — SmartPetHome{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📍 Locations</h1>
+  <a href="{{ url_for('locations.new') }}" class="btn btn-primary">+ Add Location</a>
+</div>
+
+{% if locations %}
+  <div class="card-grid">
+    {% for loc in locations %}
+    <div class="pet-card">
+      <div class="pet-card-header">
+        <h3>{{ loc.name }}</h3>
+        <span class="badge badge-info">Location</span>
+      </div>
+      {% if loc.notes %}
+        <p style="font-size:.875rem;color:var(--color-text-muted);margin-bottom:.75rem;">{{ loc.notes }}</p>
+      {% endif %}
+      <div class="card-actions">
+        <a href="{{ url_for('locations.edit', loc_id=loc.id) }}" class="btn btn-sm btn-outline">Edit</a>
+        <form method="POST" action="{{ url_for('locations.delete', loc_id=loc.id) }}"
+              onsubmit="return confirm('Delete {{ loc.name }}?');">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-state">
+    <p>No locations yet. Add rooms, kennels, cages, or outdoor spaces.</p>
+    <a href="{{ url_for('locations.new') }}" class="btn btn-primary">Add your first location</a>
+  </div>
+{% endif %}
+{% endblock %}

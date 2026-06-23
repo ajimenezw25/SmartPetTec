@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartPetHome — Navbar Color Options</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Trebuchet MS', sans-serif; background: #FAF8F2; padding: 2rem; color: #12313F; }
+  h1 { font-size: 1.4rem; margin-bottom: 1.5rem; color: #004C7F; }
+  .option { margin-bottom: 2rem; }
+  .label { font-weight: 700; font-size: .95rem; margin-bottom: .5rem; color: #444; }
+  .note  { font-size: .82rem; color: #777; margin-top: .35rem; }
+
+  /* Fake navbar */
+  .navbar {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    padding: 0 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.18);
+    gap: .6rem;
+  }
+  .dog-icon {
+    width: 38px; height: 38px; border-radius: 6px;
+    background: url('img/smartpethome-icon.png') center/contain no-repeat;
+    background-color: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.15);
+    flex-shrink: 0;
+  }
+  .brand-text { font-size: 1.15rem; font-weight: 700; color: #fff; letter-spacing: -.01em; }
+  .spacer { flex: 1; }
+  .pill {
+    font-size: .72rem; font-weight: 700; color: rgba(255,255,255,.8);
+    background: rgba(255,255,255,.15); border-radius: 20px; padding: .2rem .6rem;
+  }
+  .ham { width: 32px; height: 32px; border-radius: 6px;
+    background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+    display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; }
+  .ham span { width: 16px; height: 2px; background: #fff; border-radius: 2px; display: block; }
+
+  /* Color options */
+  .opt-1  { background: linear-gradient(135deg, #004C7F, #005B96); }  /* Current dark navy */
+  .opt-2  { background: linear-gradient(135deg, #0077B6, #35C7D8); }  /* Current blue→teal */
+  .opt-3  { background: linear-gradient(135deg, #1565C0, #1E88E5); }  /* Classic royal blue */
+  .opt-4  { background: linear-gradient(135deg, #00838F, #26C6DA); }  /* Teal */
+  .opt-5  { background: linear-gradient(135deg, #283593, #3949AB); }  /* Indigo */
+  .opt-6  { background: linear-gradient(135deg, #1B5E20, #2E7D32); }  /* Forest green */
+  .opt-7  { background: linear-gradient(135deg, #4527A0, #7B1FA2); }  /* Purple */
+  .opt-8  { background: linear-gradient(135deg, #BF360C, #E64A19); }  /* Deep orange */
+  .opt-9  { background: linear-gradient(135deg, #37474F, #546E7A); }  /* Slate/charcoal */
+  .opt-10 { background: linear-gradient(135deg, #006064, #00897B); }  /* Dark teal/emerald */
+  .opt-11 { background: linear-gradient(135deg, #212121, #424242); }  /* Dark charcoal */
+  .opt-12 { background: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,.12); border: 1px solid #dde8f0; }  /* White */
+  .opt-12 .brand-text { color: #004C7F; }
+  .opt-12 .pill { background: rgba(0,76,127,.1); color: #004C7F; }
+  .opt-12 .ham { background: rgba(0,76,127,.08); border-color: rgba(0,76,127,.2); }
+  .opt-12 .ham span { background: #004C7F; }
+
+  /* Swatches under each navbar */
+  .swatches { display: flex; gap: .4rem; margin-top: .4rem; flex-wrap: wrap; }
+  .swatch {
+    display: flex; flex-direction: column; align-items: center; gap: .2rem;
+    font-size: .65rem; color: #555; text-align: center; min-width: 60px;
+  }
+  .swatch-box { width: 60px; height: 28px; border-radius: 5px; border: 1px solid #ddd; }
+
+  /* Divider */
+  hr { border: none; border-top: 1px solid #dde8f0; margin: 2rem 0; }
+  footer { font-size: .8rem; color: #aaa; margin-top: 2rem; }
+</style>
+</head>
+<body>
+
+<h1>SmartPetHome — Navbar Color Picker</h1>
+<p style="margin-bottom:1.5rem;font-size:.9rem;color:#666;">
+  Each option below shows how the navbar would look. Tell me the number you want and I'll apply it.
+</p>
+
+<!-- 1 -->
+<div class="option">
+  <div class="label">Option 1 — Dark Navy (original)</div>
+  <div class="navbar opt-1">
+    <div class="dog-icon"></div>
+    <span class="brand-text">SmartPetHome</span>
+    <div class="spacer"></div>
+    <span class="pill">○ MQTT</span>
+    <span class="pill">User</span>
+    <div class="ham"><span></span><span></span><span></span></div>
+  </div>
+  <div class="swatches">
+    <div class="swatch"><div class="swatch-box" style="background:#004C7F"></div>#004C7F</div>
+    <div class="swatch"><div class="swatch-box" style="background:#005B96"></div>#005B96</div>
+  </div>
+</div>
+
+<!-- 2 -->
+<div class="option">
+  <div class="label">Option 2 — Blue → Teal (current)</div>
+  <div class="navbar opt-2">
+    <div class="dog-icon"></div>
+    <span class="brand-text">SmartPetHome</span>
+    <div class="spacer"></div>
+    <span class="pill">○ MQTT</span>
+    <span class="pill">User</span>
+    <div class="ham"><span></span><span></span><span></span></div>
+  </div>
+  <div class="swatches">
+    <div class="swatch"><div class="swatch-box" style="background:#0077B6"></div>#0077B6</div>
+    <div class="swatch"><div class="swatch-box" style="background:#35C7D8"></div>#35C7D8</div>
+  </div>
+</div>
+
+<!-- 3 -->
+<div class="option">
+  <div class="label">Option 3 — Royal Blue</div>
+  <div class="navbar opt-3">
+    <div class="dog-icon"></div>
+    <span class="brand-text">SmartPetHome</span>
+    <div class="spacer"></div>
+    <span class="pill">○ MQTT</span>
+    <span class="pill">User</span>
+    <div class="ham"><span></span><span></span><span></span></div>
+  </div>
+  <div class="swatches">
+    <div class="swatch"><div class="swatch-box" style="background:#1565C0"></div>#1565C0</div>
+    <div class="swatch"><div class="swatch-box" style="background:#1E88E5"></div>#1E88E5</div>
+  </div>
+</div>
+
+<!-- 4 -->
+<div class="option">
+  <div class="label">Option 4 — Teal / Cyan</div>
+  <div class="navbar opt-4">
+    <div class="dog-icon"></div>
+    <span class="brand-text">SmartPetHome</span>
+    <div class="spacer"></div>
+    <span class="pill">○ MQTT</span>
+    <span class="pill">User</span>
+    <div class="ham"><span></span><span></span><span></span></div>
+  </div>
+  <div class="swatches">
+    <div class="swatch"><div class="swatch-box" style="background:#00838F"></div>#00838F</div>
+    <div class="swatch"><div class="swatch-box" style="background:#26C6DA"></div>#26C6DA</div>
+  </div>
+</div>
+
+<!-- 5 -->
+<div class="option">
+  <div class="label">Option 5 — Indigo</div>
+  <div class="navbar opt-5">
+    <div class="dog-icon"></div>
+    <span class="brand-text">SmartPetHome</span>
+    <div class="spacer"></div>
+    <span class="pill">○ MQTT</span>
+    <span class="pill">User</span>
+    <div class="ham"><span></span><span></span><span></span></div>
+  </div>
+  <div class="swatches">
+    <div class="swatch"><div class="swatch-box" style="background:#283593"></div>#283593</div>
+    <div class="swatch"><div class="swatch-box" style="background:#3949AB"></div>#3949AB</div>
+  </div>
+</div>
+
+<!-- 6 -->
+<div class="option">
+  <div class="label">Option 6 — Forest Green</div>
+  <div class="navbar opt-6">
+    <div class="dog-icon"></div>
+    <span class="brand-text">SmartPetHome</span>
+    <div class="spacer"></div>
+    <span class="pill">○ MQTT</span>
+    <span class="pill">User</span>
+    <div class="ham"><span></span><span></span><span></span></div>
+  </div>
+  <div class="swatches">
+    <div class="swatch"><div class="swatch-box" style="background:#1B5E20"></div>#1B5E20</div>
+    <div class="swatch"><div class="swatch-box" style="background:#2E7D32"></div>#2E7D32</div>
+  </div>
+</div>
+
+<!-- 7 -->
+<div class="option">
+  <div class="label">Option 7 — Purple</div>
+  <div class="navbar opt-7">
+    <div class="dog-icon"></div>
+    <span class="brand-text">SmartPetHome</span>
+    <div class="spacer"></div>
+    <span class="pill">○ MQTT</span>
+    <span class="pill">User</span>
+    <div class="ham"><span></span><span></span><span></span></div>
+  </div>
+  <div class="swatches">
+    <div class="swatch"><div class="swatch-box" style="background:#4527A0"></div>#4527A0</div>
+    <div class="swatch"><div class="swatch-box" style="background:#7B1FA2"></div>#7B1FA2</div>
+  </div>
+</div>
+
+<!-- 8 -->
+<div class="option">
+  <div class="label">Option 8 — Deep Orange / Amber</div>
+  <div class="navbar opt-8">
+    <div class="dog-icon"></div>
+    <span class="brand-text">SmartPetHome</span>
+    <div class="spacer"></div>
+    <span class="pill">○ MQTT</span>
+    <span class="pill">User</span>
+    <div class="ham"><span></span><span></span><span></span></div>
+  </div>
+  <div class="swatches">
+    <div class="swatch"><div class="swatch-box" style="background:#BF360C"></div>#BF360C</div>
+    <div class="swatch"><div class="swatch-box" style="background:#E64A19"></div>#E64A19</div>
+  </div>
+</div>
+
+<!-- 9 -->
+<div class="option">
+  <div class="label">Option 9 — Slate / Charcoal Blue</div>
+  <div class="navbar opt-9">
+    <div class="dog-icon"></div>
+    <span class="brand-text">SmartPetHome</span>
+    <div class="spacer"></div>
+    <span class="pill">○ MQTT</span>
+    <span class="pill">User</span>
+    <div class="ham"><span></span><span></span><span></span></div>
+  </div>
+  <div class="swatches">
+    <div class="swatch"><div class="swatch-box" style="background:#37474F"></div>#37474F</div>
+    <div class="swatch"><div class="swatch-box" style="background:#546E7A"></div>#546E7A</div>
+  </div>
+</div>
+
+<!-- 10 -->
+<div class="option">
+  <div class="label">Option 10 — Dark Teal / Emerald</div>
+  <div class="navbar opt-10">
+    <div class="dog-icon"></div>
+    <span class="brand-text">SmartPetHome</span>
+    <div class="spacer"></div>
+    <span class="pill">○ MQTT</span>
+    <span class="pill">User</span>
+    <div class="ham"><span></span><span></span><span></span></div>
+  </div>
+  <div class="swatches">
+    <div class="swatch"><div class="swatch-box" style="background:#006064"></div>#006064</div>
+    <div class="swatch"><div class="swatch-box" style="background:#00897B"></div>#00897B</div>
+  </div>
+</div>
+
+<!-- 11 -->
+<div class="option">
+  <div class="label">Option 11 — Dark Charcoal / Almost Black</div>
+  <div class="navbar opt-11">
+    <div class="dog-icon"></div>
+    <span class="brand-text">SmartPetHome</span>
+    <div class="spacer"></div>
+    <span class="pill">○ MQTT</span>
+    <span class="pill">User</span>
+    <div class="ham"><span></span><span></span><span></span></div>
+  </div>
+  <div class="swatches">
+    <div class="swatch"><div class="swatch-box" style="background:#212121"></div>#212121</div>
+    <div class="swatch"><div class="swatch-box" style="background:#424242"></div>#424242</div>
+  </div>
+</div>
+
+<!-- 12 -->
+<div class="option">
+  <div class="label">Option 12 — White / Light (inverted)</div>
+  <div class="navbar opt-12">
+    <div class="dog-icon"></div>
+    <span class="brand-text">SmartPetHome</span>
+    <div class="spacer"></div>
+    <span class="pill">○ MQTT</span>
+    <span class="pill">User</span>
+    <div class="ham"><span></span><span></span><span></span></div>
+  </div>
+  <div class="swatches">
+    <div class="swatch"><div class="swatch-box" style="background:#ffffff;border:1px solid #ccc"></div>#FFFFFF</div>
+    <div class="swatch"><div class="swatch-box" style="background:#004C7F"></div>text: #004C7F</div>
+  </div>
+</div>
+
+<footer>Open this file at <strong>http://127.0.0.1:5000/static/color-preview.html</strong> — tell me the option number you want.</footer>
+
+</body>
+</html>

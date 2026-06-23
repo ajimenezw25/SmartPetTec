@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartPetHome — Infografía</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f5f5f0;
+      color: #1a1a1a;
+      padding: 2rem 1.5rem;
+      min-height: 100vh;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 500;
+    }
+    .header p {
+      font-size: 14px;
+      color: #666;
+      margin-top: 6px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e0ddd5;
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+
+    .card-icon {
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+    .tag-teal  { background: #E1F5EE; color: #0F6E56; }
+    .tag-purple{ background: #EEEDFE; color: #3C3489; }
+    .tag-amber { background: #FAEEDA; color: #854F0B; }
+
+    .card h2 {
+      font-size: 15px;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+
+    .card ul {
+      list-style: none;
+      padding: 0;
+    }
+    .card ul li {
+      font-size: 13px;
+      color: #444;
+      padding: 5px 0;
+      border-bottom: 1px solid #f0ede5;
+      line-height: 1.5;
+    }
+    .card ul li:last-child { border-bottom: none; }
+    .card ul li::before { content: "→ "; color: #aaa; }
+
+    .footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 12px;
+      color: #999;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body { background: #1c1c1a; color: #e8e6e0; }
+      .card { background: #2a2a27; border-color: #3a3a36; }
+      .card ul li { color: #b0aea6; border-bottom-color: #3a3a36; }
+      .header p, .footer { color: #888; }
+      .tag-teal  { background: #085041; color: #9FE1CB; }
+      .tag-purple{ background: #26215C; color: #CECBF6; }
+      .tag-amber { background: #412402; color: #FAC775; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>SmartPetHome — resumen del proyecto</h1>
+    <p>Universidad · 2026 · prototipo de monitoreo y cuidado de mascotas</p>
+  </div>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-icon"><i class="ti ti-flag-3"></i></div>
+      <span class="tag tag-teal">Lo que se logró</span>
+      <h2>Conclusiones</h2>
+      <ul>
+        <li>Sistema funcional de extremo a extremo: ESP32 → MQTT → Flask → Supabase → UI</li>
+        <li>Comunicación en tiempo real entre hardware y app web</li>
+        <li>Registro y visualización de telemetría de dispositivos</li>
+        <li>Autenticación de usuarios y gestión de mascotas</li>
+        <li>Ejecutable de escritorio con PyInstaller</li>
+        <li>Primer dispositivo físico probado: alimentador automático</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-icon"><i class="ti ti-bulb"></i></div>
+      <span class="tag tag-purple">Lo que aprendimos</span>
+      <h2>Aprendizajes</h2>
+      <ul>
+        <li>Integrar hardware (ESP32) con software en la nube no es trivial</li>
+        <li>MQTT es ideal para IoT: ligero y asíncrono</li>
+        <li>Supabase acelera el backend con DB + auth listos</li>
+        <li>PyInstaller tiene sus propios trucos de compatibilidad</li>
+        <li>El broker público de EMQX funciona bien para prototipos</li>
+        <li>Iterar rápido en hardware requiere buen debug serial</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-icon"><i class="ti ti-tool"></i></div>
+      <span class="tag tag-amber">Para el futuro</span>
+      <h2>Qué mejorar</h2>
+      <ul>
+        <li>Usar broker MQTT privado con TLS en producción</li>
+        <li>Añadir notificaciones push en tiempo real</li>
+        <li>Completar los 8 tipos de dispositivos soportados</li>
+        <li>App móvil nativa en lugar de solo web</li>
+        <li>Análisis de datos y reportes históricos más avanzados</li>
+        <li>Pruebas automatizadas de integración hardware-software</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="footer">SmartPetTec · Tecnológico de Monterrey · prototipo universitario</div>
+
+</body>
+</html>

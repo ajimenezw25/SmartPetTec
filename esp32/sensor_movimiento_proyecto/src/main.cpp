@@ -4,8 +4,8 @@
 #include <ArduinoJson.h>
 
 // ── WiFi credentials ─────────────────────────────────────────
-#define WIFI_SSID "Jiménez Wilhelm 4G"
-#define WIFI_PASS "Wilhelm25"
+#define WIFI_SSID "T14"
+#define WIFI_PASS "94379437"
 
 // ── MQTT broker ───────────────────────────────────────────────
 #define MQTT_HOST      "broker.emqx.io"

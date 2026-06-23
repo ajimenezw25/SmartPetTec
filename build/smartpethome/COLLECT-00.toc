@@ -7,67 +7,67 @@
    'EXECUTABLE'),
   ('VCRUNTIME140.dll',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\VCRUNTIME140.dll',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\VCRUNTIME140.dll',
    'BINARY'),
   ('VCRUNTIME140_1.dll',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\VCRUNTIME140_1.dll',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\VCRUNTIME140_1.dll',
    'BINARY'),
   ('_asyncio.pyd',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\_asyncio.pyd',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\_asyncio.pyd',
    'EXTENSION'),
   ('_bz2.pyd',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\_bz2.pyd',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\_bz2.pyd',
    'EXTENSION'),
   ('_ctypes.pyd',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\_ctypes.pyd',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\_ctypes.pyd',
    'EXTENSION'),
   ('_decimal.pyd',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\_decimal.pyd',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\_decimal.pyd',
    'EXTENSION'),
   ('_hashlib.pyd',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\_hashlib.pyd',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\_hashlib.pyd',
    'EXTENSION'),
   ('_lzma.pyd',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\_lzma.pyd',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\_lzma.pyd',
    'EXTENSION'),
   ('_multiprocessing.pyd',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\_multiprocessing.pyd',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\_multiprocessing.pyd',
    'EXTENSION'),
   ('_overlapped.pyd',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\_overlapped.pyd',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\_overlapped.pyd',
    'EXTENSION'),
   ('_queue.pyd',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\_queue.pyd',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\_queue.pyd',
    'EXTENSION'),
   ('_socket.pyd',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\_socket.pyd',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\_socket.pyd',
    'EXTENSION'),
   ('_ssl.pyd',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\_ssl.pyd',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\_ssl.pyd',
    'EXTENSION'),
   ('_uuid.pyd',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\_uuid.pyd',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\_uuid.pyd',
    'EXTENSION'),
   ('_wmi.pyd',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\_wmi.pyd',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\_wmi.pyd',
    'EXTENSION'),
   ('_zoneinfo.pyd',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\_zoneinfo.pyd',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\_zoneinfo.pyd',
    'EXTENSION'),
   ('base_library.zip',
    'B:\\TEC\\SmartPetTec\\SmartPetTec\\build\\smartpethome\\base_library.zip',
@@ -167,15 +167,15 @@
    'DATA'),
   ('libcrypto-3.dll',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\libcrypto-3.dll',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\libcrypto-3.dll',
    'BINARY'),
   ('libffi-8.dll',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\libffi-8.dll',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\libffi-8.dll',
    'BINARY'),
   ('libssl-3.dll',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\libssl-3.dll',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\libssl-3.dll',
    'BINARY'),
   ('markupsafe-3.0.3.dist-info\\INSTALLER',
    'C:\\Temp\\sph-build-venv\\Lib\\site-packages\\markupsafe-3.0.3.dist-info\\INSTALLER',
@@ -218,15 +218,15 @@
    'EXTENSION'),
   ('pyexpat.pyd',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\pyexpat.pyd',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\pyexpat.pyd',
    'EXTENSION'),
   ('python313.dll',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\python313.dll',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\python313.dll',
    'BINARY'),
   ('select.pyd',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\select.pyd',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\select.pyd',
    'EXTENSION'),
   ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\INSTALLER',
    'C:\\Temp\\sph-build-venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\INSTALLER',
@@ -333,7 +333,7 @@
    'DATA'),
   ('unicodedata.pyd',
    'C:\\Program '
-   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\\DLLs\\unicodedata.pyd',
+   'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\DLLs\\unicodedata.pyd',
    'EXTENSION'),
   ('websockets-12.0.dist-info\\INSTALLER',
    'C:\\Temp\\sph-build-venv\\Lib\\site-packages\\websockets-12.0.dist-info\\INSTALLER',

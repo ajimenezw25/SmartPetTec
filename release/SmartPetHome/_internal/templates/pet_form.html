@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Pet' if pet else 'Register Pet' }} — SmartPetHome{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{{ '✏️ Edit Pet' if pet else '🐾 Register a Pet' }}</h1>
+  <a href="{{ url_for('pets.index') }}" class="btn btn-outline">← Back to Pets</a>
+</div>
+
+<div class="form-card">
+  <form method="POST"
+        action="{{ url_for('pets.edit', pet_id=pet.id) if pet else url_for('pets.new') }}">
+
+    <div class="form-group">
+      <label for="name">Pet Name <span class="required">*</span></label>
+      <input type="text" id="name" name="name" required
+             value="{{ pet.name if pet else '' }}" placeholder="Buddy" />
+    </div>
+
+    <div class="form-group">
+      <label for="species">Species <span class="required">*</span></label>
+      <input type="text" id="species" name="species" required
+             value="{{ pet.species if pet else '' }}" placeholder="Dog, Cat, Bird…" />
+    </div>
+
+    <div class="form-group">
+      <label for="breed">Breed <span class="optional">(optional)</span></label>
+      <input type="text" id="breed" name="breed"
+             value="{{ pet.breed if pet and pet.breed else '' }}" placeholder="Golden Retriever" />
+    </div>
+
+    <div class="form-group">
+      <label for="birth_date">Birth Date <span class="optional">(optional)</span></label>
+      <input type="date" id="birth_date" name="birth_date"
+             value="{{ pet.birth_date if pet and pet.birth_date else '' }}" />
+    </div>
+
+    <div class="form-group">
+      <label for="notes">Notes <span class="optional">(optional)</span></label>
+      <textarea id="notes" name="notes" rows="3"
+                placeholder="Any important notes about this pet…">{{ pet.notes if pet and pet.notes else '' }}</textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">
+        {{ 'Save Changes' if pet else 'Register Pet' }}
+      </button>
+      <a href="{{ url_for('pets.index') }}" class="btn btn-outline">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
