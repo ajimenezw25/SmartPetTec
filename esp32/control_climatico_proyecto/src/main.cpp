@@ -26,8 +26,8 @@
 #define DIGIT2 19
 
 // Red y broker
-#define WIFI_SSID  "J ARIAS -2.4G"
-#define WIFI_PASS  "Barra3126"
+#define WIFI_SSID  "compu"
+#define WIFI_PASS  "12345678"
 #define MQTT_HOST  "broker.emqx.io"
 #define MQTT_PORT  1883
 
